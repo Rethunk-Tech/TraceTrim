@@ -243,21 +243,8 @@ func TestMonitor_PlatformInterface(t *testing.T) {
 	}
 }
 
-// Test platform-specific implementations
-func TestWindowsPlatform(t *testing.T) {
-	// This test would normally be skipped on non-Windows systems
-	// but we can at least verify the constants and structure
-	if cfUnicodeText != 13 {
-		t.Errorf("cfUnicodeText constant = %d, want 13", cfUnicodeText)
-	}
-	if gmemMoveable != 0x0002 {
-		t.Errorf("gmemMoveable constant = %d, want 0x0002", gmemMoveable)
-	}
-}
-
-// Note: Platform-specific types (linuxPlatform, darwinPlatform) are only available
-// when building on their respective platforms due to build tags.
-// These tests would be run on the appropriate platform during CI.
+// Note: Platform-specific implementations have been removed in favor of
+// the cross-platform golang.design/x/clipboard library.
 
 // Integration test with actual platform (be careful with this)
 func TestMonitor_Integration(t *testing.T) {

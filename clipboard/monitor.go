@@ -67,15 +67,10 @@ func (s *standardPlatform) SetContent(content string) error {
 	return nil
 }
 
-// NewMonitor creates a new clipboard monitor for the current platform
+// NewMonitor creates a new clipboard monitor using the standard cross-platform library
 func NewMonitor() (*Monitor, error) {
-	platform, err := getPlatform()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize clipboard platform: %w", err)
-	}
-
 	return &Monitor{
-		platform: platform,
+		platform: &standardPlatform{},
 		stopChan: make(chan struct{}),
 	}, nil
 }
@@ -86,7 +81,11 @@ func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.Clip
 }
 
 // StartMonitoringWithInterval begins monitoring the clipboard for changes with custom interval
-func (m *Monitor) StartMonitoringWithInterval(ctx context.Context, interval time.Duration, callback func(models.ClipboardContent, *Monitor)) error {
+func (m *Monitor) StartMonitoringWithInterval(
+	ctx context.Context,
+	interval time.Duration,
+	callback func(models.ClipboardContent, *Monitor),
+) error {
 	log.Printf("Starting clipboard monitoring on %s with %v interval", m.platform.GetName(), interval)
 
 	// Get initial content
