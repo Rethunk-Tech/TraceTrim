@@ -36,7 +36,7 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	}()
 
 	// Get data in Unicode text format
-	hMem, _, _ := getClipboardData.Call(CF_UNICODETEXT)
+	hMem, _, _ := getClipboardData.Call(cfUnicodeText)
 	if hMem == 0 {
 		return "", fmt.Errorf("no text data in clipboard")
 	}
@@ -99,7 +99,7 @@ const (
 	}
 
 	// Allocate global memory
-	hMem, _, _ := globalAlloc.Call(GMEM_MOVEABLE, uintptr(size+utf16CharSize))
+	hMem, _, _ := globalAlloc.Call(gmemMoveable, uintptr(size+utf16CharSize))
 	if hMem == 0 {
 		return fmt.Errorf("failed to allocate global memory")
 	}
@@ -122,7 +122,7 @@ const (
 	}
 
 	// Set clipboard data
-	setClipboardDataRet, _, _ := setClipboardData.Call(CF_UNICODETEXT, hMem)
+	setClipboardDataRet, _, _ := setClipboardData.Call(cfUnicodeText, hMem)
 	if setClipboardDataRet == 0 {
 		globalFree.Call(hMem)
 		return fmt.Errorf("failed to set clipboard data")
@@ -148,6 +148,6 @@ var (
 )
 
 const (
-	CF_UNICODETEXT = 13
-	GMEM_MOVEABLE  = 0x0002
+	cfUnicodeText = 13
+	gmemMoveable  = 0x0002
 )
