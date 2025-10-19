@@ -147,8 +147,8 @@ func TestExtractErrorInfo(t *testing.T) {
 		expectedComp string
 	}{
 		{
-			name:         "React component error",
-			input:        "Error: Objects are not valid as a React child\n" +
+			name: "React component error",
+			input: "Error: Objects are not valid as a React child\n" +
 				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n" +
 				"    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)\n" +
 				"    at MyComponent.render (MyComponent.js:25:10)",
@@ -157,8 +157,8 @@ func TestExtractErrorInfo(t *testing.T) {
 			expectedComp: "MyComponent",
 		},
 		{
-			name:         "React component lifecycle method",
-			input:        "Warning: Component did update\n" +
+			name: "React component lifecycle method",
+			input: "Warning: Component did update\n" +
 				"    at MyComponent.componentDidUpdate (MyComponent.js:45:8)\n" +
 				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
 			expectedMsg:  "Warning: Component did update",

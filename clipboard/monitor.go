@@ -9,6 +9,11 @@ import (
 	"com.github/rethunk-tech/no-reaction/internal/models"
 )
 
+const (
+	// Clipboard polling interval
+	clipboardPollInterval = 500 * time.Millisecond
+)
+
 // Monitor handles clipboard monitoring across platforms
 type Monitor struct {
 	platform    Platform
@@ -46,11 +51,6 @@ func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.Clip
 		return fmt.Errorf("failed to get initial clipboard content: %w", err)
 	}
 	m.lastContent = initialContent
-
-const (
-	// Clipboard polling interval
-	clipboardPollInterval = 500 * time.Millisecond
-)
 
 	// Start monitoring loop
 	ticker := time.NewTicker(clipboardPollInterval)
