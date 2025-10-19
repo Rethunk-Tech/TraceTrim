@@ -27,9 +27,9 @@ type StackFrame struct {
 
 // CleanResult contains the cleaned stack trace and metadata
 type CleanResult struct {
-	Original  string     // Original stack trace
-	Cleaned   string     // Cleaned stack trace
-	Removed   int        // Number of repetitive blocks removed
+	Original  string       // Original stack trace
+	Cleaned   string       // Cleaned stack trace
+	Removed   int          // Number of repetitive blocks removed
 	Frames    []StackFrame // Parsed stack frames
-	ErrorInfo *ErrorInfo // Extracted error information
+	ErrorInfo *ErrorInfo   // Extracted error information
 }
