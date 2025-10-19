@@ -632,4 +632,4 @@ If you find this tool helpful, please consider:
 
 ---
 
-[LICENSE](LICENSE) | Copyright (c) 2025 Rethunk-Tech
+[LICENSE](LICENSE) | Copyright (c) 2025 Rethunk.Tech, LLC.
