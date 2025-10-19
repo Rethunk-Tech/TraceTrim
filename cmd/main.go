@@ -71,9 +71,26 @@ func handleClipboardContent(content models.ClipboardContent, monitor *clipboard.
 
 		fmt.Printf("✓ Stack trace cleaned and clipboard updated\n")
 
-		// Show accurate count of what was removed
-		if cleanResult.Removed > 0 {
-			fmt.Printf("  Removed %d repetitive stack frame(s)\n", cleanResult.Removed)
+		// Show comprehensive statistics
+		fmt.Printf("  Statistics:\n")
+		fmt.Printf("    • Size: %d bytes → %d bytes", len(cleanResult.Original), len(cleanResult.Cleaned))
+
+		if cleanResult.BytesSaved > 0 {
+			fmt.Printf(" (saved %d bytes", cleanResult.BytesSaved)
+			// Show percentage saved if we have meaningful data
+			if len(cleanResult.Original) > 0 {
+				percentage := float64(cleanResult.BytesSaved) / float64(len(cleanResult.Original)) * 100
+				fmt.Printf(", %.1f%%", percentage)
+			}
+			fmt.Printf(")")
 		}
+		fmt.Printf("\n")
+
+		fmt.Printf("    • Lines: %d → %d", cleanResult.LinesBefore, cleanResult.LinesAfter)
+
+		if cleanResult.Removed > 0 {
+			fmt.Printf(" (removed %d repetitive frame(s))", cleanResult.Removed)
+		}
+		fmt.Printf("\n")
 	}
 }
