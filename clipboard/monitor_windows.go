@@ -111,8 +111,8 @@ func (w *windowsPlatform) SetContent(content string) error {
 
 // Windows API constants and function declarations
 var (
-	user32           = syscall.NewLazyDLL("user32.dll")
-	kernel32         = syscall.NewLazyDLL("kernel32.dll")
+	user32   = syscall.NewLazyDLL("user32.dll")
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
 	openClipboard    = user32.NewProc("OpenClipboard")
 	closeClipboard   = user32.NewProc("CloseClipboard")
