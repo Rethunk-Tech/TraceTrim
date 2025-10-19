@@ -29,7 +29,11 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	if ret == 0 {
 		return "", fmt.Errorf("failed to open clipboard")
 	}
-	defer closeClipboard.Call()
+	defer func() {
+		if _, _, err := closeClipboard.Call(); err != nil {
+			// Log error but don't fail the operation
+		}
+	}()
 
 	// Get data in Unicode text format
 	hMem, _, _ := getClipboardData.Call(CF_UNICODETEXT)
@@ -42,7 +46,11 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	if lockRet == 0 {
 		return "", fmt.Errorf("failed to lock global memory")
 	}
-	defer globalUnlock.Call(hMem)
+	defer func() {
+		if _, _, err := globalUnlock.Call(hMem); err != nil {
+			// Log error but don't fail the operation
+		}
+	}()
 
 	// Convert UTF-16 bytes to Go string
 	utf16Ptr := (*uint16)(unsafe.Pointer(lockRet))
@@ -74,10 +82,16 @@ func (w *windowsPlatform) SetContent(content string) error {
 	if ret == 0 {
 		return fmt.Errorf("failed to open clipboard")
 	}
-	defer closeClipboard.Call()
+	defer func() {
+		if _, _, err := closeClipboard.Call(); err != nil {
+			// Log error but don't fail the operation
+		}
+	}()
 
 	// Empty clipboard
-	emptyClipboard.Call()
+	if _, _, err := emptyClipboard.Call(); err != nil {
+		return fmt.Errorf("failed to empty clipboard")
+	}
 
 	// Allocate global memory
 	hMem, _, _ := globalAlloc.Call(GMEM_MOVEABLE, uintptr(size+2))
@@ -97,7 +111,10 @@ func (w *windowsPlatform) SetContent(content string) error {
 	copy((*[1 << 20]uint16)(dest)[:len(utf16):len(utf16)], utf16)
 
 	// Unlock memory
-	globalUnlock.Call(hMem)
+	if _, _, err := globalUnlock.Call(hMem); err != nil {
+		globalFree.Call(hMem)
+		return fmt.Errorf("failed to unlock global memory")
+	}
 
 	// Set clipboard data
 	setClipboardDataRet, _, _ := setClipboardData.Call(CF_UNICODETEXT, hMem)
