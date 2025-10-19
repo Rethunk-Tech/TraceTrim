@@ -1,5 +1,8 @@
 # Clipboard Stack Trace Cleaner
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rethunk-tech/no-reaction)](https://goreportcard.com/report/github.com/rethunk-tech/no-reaction)
+
 A simple, cross-platform CLI application that monitors your clipboard for JavaScript console or React stack traces and automatically cleans them by removing repetitive blocks.
 
 ## Problem Solved
