@@ -207,16 +207,16 @@ func processScriptInput(content string, cfg *config.Config) {
 	// Check if content actually changed
 	if cleanResult.Cleaned == content {
 		// Content is already clean, output it verbatim (no verbose message in script mode)
-		outputScriptResult(&cleanResult, cfg, false)
+		outputScriptResult(&cleanResult)
 		return
 	}
 
 	// Output the cleaned result
-	outputScriptResult(&cleanResult, cfg, true)
+	outputScriptResult(&cleanResult)
 }
 
 // outputScriptResult formats and outputs the result based on script mode configuration
-func outputScriptResult(cleanResult *models.CleanResult, cfg *config.Config, wasCleaned bool) {
+func outputScriptResult(cleanResult *models.CleanResult) {
 	// In script mode, only output the cleaned content to STDOUT
 	// No statistics to STDERR to avoid breaking scripts
 	fmt.Print(cleanResult.Cleaned)
@@ -274,7 +274,7 @@ func handleClipboardContent(content models.ClipboardContent, monitor *clipboard.
 	// Check if this looks like a stack trace
 	if !parser.IsStackTrace(content.Content) {
 		if cfg.Output.Verbose {
-			timestamp := getTimestamp(content, cfg)
+			timestamp := GetTimestamp(content, cfg)
 			fmt.Printf("%sSkipping non-stack-trace content\n", timestamp)
 		}
 		return
@@ -304,7 +304,7 @@ func processStackTrace(content models.ClipboardContent, monitor *clipboard.Monit
 
 	// Update clipboard with cleaned content
 	if err := updateClipboard(monitor, &cleanResult); err != nil {
-		timestamp := getTimestamp(content, cfg)
+		timestamp := GetTimestamp(content, cfg)
 		fmt.Fprintf(os.Stderr, "%sError: Failed to update clipboard: %v\n", timestamp, err)
 		fmt.Fprintf(os.Stderr, "%sThe cleaned content could not be written back to clipboard\n", timestamp)
 		return
@@ -322,14 +322,14 @@ func updateClipboard(monitor *clipboard.Monitor, cleanResult *models.CleanResult
 // handleUnchangedContent handles the case where content is already clean
 func handleUnchangedContent(content models.ClipboardContent, cfg *config.Config) {
 	if cfg.Output.Verbose {
-		timestamp := getTimestamp(content, cfg)
+		timestamp := GetTimestamp(content, cfg)
 		fmt.Printf("%sNo changes needed - content is already clean\n", timestamp)
 	}
 }
 
 // showCleaningResults displays the results of cleaning a stack trace
 func showCleaningResults(content models.ClipboardContent, cleanResult *models.CleanResult, cfg *config.Config) {
-	timestamp := getTimestamp(content, cfg)
+	timestamp := GetTimestamp(content, cfg)
 
 	if cfg.Output.Verbose {
 		stackType := getStackTraceType(cleanResult.ErrorInfo, content.Content)
@@ -348,13 +348,13 @@ func showCleaningResults(content models.ClipboardContent, cleanResult *models.Cl
 
 // showSuccessMessage displays the success message with stack trace type
 func showSuccessMessage(content models.ClipboardContent, cleanResult *models.CleanResult, cfg *config.Config) {
-	timestamp := getTimestamp(content, cfg)
+	timestamp := GetTimestamp(content, cfg)
 	stackType := getStackTraceType(cleanResult.ErrorInfo, content.Content)
 	fmt.Printf("%s✅ %s stack trace cleaned and clipboard updated\n", timestamp, stackType)
 }
 
-// getTimestamp returns formatted timestamp if enabled in config
-func getTimestamp(content models.ClipboardContent, cfg *config.Config) string {
+// GetTimestamp returns formatted timestamp if enabled in config
+func GetTimestamp(content models.ClipboardContent, cfg *config.Config) string {
 	if cfg.Output.ShowTimestamp {
 		return fmt.Sprintf("[%s] ", content.Timestamp.Format("15:04:05"))
 	}
@@ -366,7 +366,7 @@ func showCompactStatistics(timestamp string, cleanResult *models.CleanResult) {
 	if cleanResult.Removed > 0 || cleanResult.BytesSaved > 0 {
 		fmt.Printf("%s   • ", timestamp)
 
-		statsParts := buildStatsParts(cleanResult)
+		statsParts := BuildStatsParts(cleanResult)
 		fmt.Printf("%s\n", strings.Join(statsParts, ", "))
 	}
 }
@@ -375,7 +375,7 @@ func showCompactStatistics(timestamp string, cleanResult *models.CleanResult) {
 func showVerboseStatistics(timestamp string, cleanResult *models.CleanResult) {
 	fmt.Printf("%s   • ", timestamp)
 
-	statsParts := buildStatsParts(cleanResult)
+	statsParts := BuildStatsParts(cleanResult)
 	if len(statsParts) > 0 {
 		fmt.Printf("%s\n", strings.Join(statsParts, ", "))
 	} else {
@@ -383,8 +383,8 @@ func showVerboseStatistics(timestamp string, cleanResult *models.CleanResult) {
 	}
 }
 
-// buildStatsParts builds the statistics parts for display
-func buildStatsParts(cleanResult *models.CleanResult) []string {
+// BuildStatsParts builds the statistics parts for display
+func BuildStatsParts(cleanResult *models.CleanResult) []string {
 	statsParts := []string{}
 
 	if cleanResult.Removed > 0 {
