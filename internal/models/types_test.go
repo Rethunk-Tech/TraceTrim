@@ -197,10 +197,14 @@ func TestModelFieldAlignment(t *testing.T) {
 	// Test clean result calculations
 	original := "line1\nline2\nline3"
 	cleaned := "line1\nline3"
+	linesBefore := strings.Count(original, "\n") + 1 // +1 for the last line if no trailing newline
+	linesAfter := strings.Count(cleaned, "\n") + 1
 	cleanResult := CleanResult{
-		Original:   original,
-		Cleaned:    cleaned,
-		BytesSaved: len(original) - len(cleaned), // Calculate actual difference
+		Original:    original,
+		Cleaned:     cleaned,
+		BytesSaved:  len(original) - len(cleaned), // Calculate actual difference
+		LinesBefore: linesBefore,
+		LinesAfter:  linesAfter,
 	}
 
 	if cleanResult.BytesSaved != len(cleanResult.Original)-len(cleanResult.Cleaned) {
