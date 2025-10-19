@@ -1,15 +1,15 @@
-# Clipboard Stack Trace Cleaner
+# TraceTrim
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Report Card](https://goreportcard.com/badge/github.com/rethunk-tech/no-reaction)](https://goreportcard.com/report/github.com/rethunk-tech/no-reaction)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rethunk-tech/tracetrim)](https://goreportcard.com/report/github.com/rethunk-tech/tracetrim)
 
-[![Release](https://img.shields.io/github/v/release/rethunk-tech/no-reaction.svg)](https://github.com/rethunk-tech/no-reaction/releases)
-[![Downloads](https://img.shields.io/github/downloads/rethunk-tech/no-reaction/total.svg)](https://github.com/rethunk-tech/no-reaction/releases)
+[![Release](https://img.shields.io/github/v/release/rethunk-tech/tracetrim.svg)](https://github.com/rethunk-tech/tracetrim/releases)
+[![Downloads](https://img.shields.io/github/downloads/rethunk-tech/tracetrim/total.svg)](https://github.com/rethunk-tech/tracetrim/releases)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
-[![Issues](https://img.shields.io/github/issues/rethunk-tech/no-reaction.svg)](https://github.com/rethunk-tech/no-reaction/issues)
-[![Stars](https://img.shields.io/github/stars/rethunk-tech/no-reaction.svg)](https://github.com/rethunk-tech/no-reaction)
+[![Issues](https://img.shields.io/github/issues/rethunk-tech/tracetrim.svg)](https://github.com/rethunk-tech/tracetrim/issues)
+[![Stars](https://img.shields.io/github/stars/rethunk-tech/tracetrim.svg)](https://github.com/rethunk-tech/tracetrim)
 
-A simple, cross-platform CLI application that monitors your clipboard for JavaScript console or React stack traces and automatically cleans them by removing repetitive blocks.
+A simple, cross-platform CLI application that monitors your clipboard for JavaScript console or React stack traces and automatically trims them by removing repetitive blocks.
 
 ## Problem Solved
 
@@ -48,27 +48,27 @@ Error: Objects are not valid as a React child
 
 ### Option 1: Download Pre-built Binaries
 
-Check the [Releases](https://github.com/rethunk-tech/no-reaction/releases) page for pre-built binaries for your platform.
+Check the [Releases](https://github.com/rethunk-tech/tracetrim/releases) page for pre-built binaries for your platform.
 
 ### Option 2: Build from Source
 
 **Prerequisites:**
 
-- Go 1.19 or later
+- Go 1.21 or later
 
 ```bash
 # Clone the repository
-git clone https://github.com/rethunk-tech/no-reaction.git
-cd no-reaction
+git clone https://github.com/rethunk-tech/tracetrim.git
+cd tracetrim
 
 # Build for your platform
-go build -o clipboard-cleaner ./cmd/
+go build -o tracetrim ./cmd/
 
 # Optional: Install to system PATH
 # Linux/macOS:
-# sudo mv clipboard-cleaner /usr/local/bin/
+# sudo mv tracetrim /usr/local/bin/
 # Windows:
-# move clipboard-cleaner %PATH%
+# move tracetrim %PATH%
 ```
 
 ### Option 3: Cross-platform Builds
@@ -77,13 +77,13 @@ The application supports all major platforms with platform-specific optimization
 
 ```bash
 # Build for multiple platforms (build tags ensure correct implementation)
-GOOS=windows GOARCH=amd64 go build -o clipboard-cleaner-windows.exe ./cmd/
-GOOS=darwin GOARCH=amd64 go build -o clipboard-cleaner-macos ./cmd/
-GOOS=linux GOARCH=amd64 go build -o clipboard-cleaner-linux ./cmd/
+GOOS=windows GOARCH=amd64 go build -o tracetrim-windows.exe ./cmd/
+GOOS=darwin GOARCH=amd64 go build -o tracetrim-macos ./cmd/
+GOOS=linux GOARCH=amd64 go build -o tracetrim-linux ./cmd/
 
 # Build for ARM architectures
-GOOS=darwin GOARCH=arm64 go build -o clipboard-cleaner-macos-arm64 ./cmd/
-GOOS=linux GOARCH=arm64 go build -o clipboard-cleaner-linux-arm64 ./cmd/
+GOOS=darwin GOARCH=arm64 go build -o tracetrim-macos-arm64 ./cmd/
+GOOS=linux GOARCH=arm64 go build -o tracetrim-linux-arm64 ./cmd/
 ```
 
 **Note**: Each platform uses its optimal clipboard access method:
@@ -99,7 +99,7 @@ GOOS=linux GOARCH=arm64 go build -o clipboard-cleaner-linux-arm64 ./cmd/
 Simply run the application:
 
 ```bash
-./clipboard-cleaner
+./tracetrim
 ```
 
 The application will:
@@ -112,7 +112,7 @@ The application will:
 **Example output:**
 
 ```console
-Clipboard Stack Trace Cleaner
+TraceTrim
 Monitoring clipboard for JavaScript/React stack traces...
 Press Ctrl+C to exit
 
@@ -353,7 +353,7 @@ sudo pacman -S xclip
 
 ## Troubleshooting Guide
 
-This section provides comprehensive solutions for common issues you might encounter when using the Clipboard Stack Trace Cleaner.
+This section provides comprehensive solutions for common issues you might encounter when using the TraceTrim.
 
 ### Quick Diagnostic Commands
 
@@ -384,8 +384,8 @@ echo "test content" | pbcopy  # macOS
 **Solutions**:
 
 - **Check Go installation**: Ensure Go 1.21+ is installed (`go version`)
-- **Verify binary**: Ensure the binary is not corrupted (`ls -la clipboard-cleaner`)
-- **Check permissions**: Ensure the binary is executable (`chmod +x clipboard-cleaner`)
+- **Verify binary**: Ensure the binary is not corrupted (`ls -la tracetrim`)
+- **Check permissions**: Ensure the binary is executable (`chmod +x tracetrim`)
 - **Platform compatibility**: Ensure you're running on a supported platform (Windows 7+, macOS 10.6+, Linux with X11)
 
 #### 2. Clipboard Access Denied
@@ -495,10 +495,10 @@ For advanced users experiencing persistent issues:
 
 ```bash
 # Enable verbose logging
-./clipboard-cleaner --verbose
+./tracetrim --verbose
 
 # Test clipboard access directly
-./clipboard-cleaner --clipboard-polling-interval 2000ms
+./tracetrim --clipboard-polling-interval 2000ms
 
 # Check system clipboard status
 # Windows: Use ClipBook Viewer or PowerShell Get-Clipboard
@@ -528,7 +528,7 @@ For advanced users experiencing persistent issues:
   - Go to System Preferences > Security & Privacy > Privacy tab
   - Select "Accessibility" from the left sidebar
   - Click the lock icon to make changes (you may need to enter your password)
-  - Find and check the box next to your terminal application (Terminal, iTerm, etc.) or the clipboard-cleaner executable
+  - Find and check the box next to your terminal application (Terminal, iTerm, etc.) or the tracetrim executable
   - If the application doesn't appear in the list, try adding it manually by clicking the "+" button
 - **First Run Prompt**: The application may prompt for permissions on first launch
 - **System Integrity Protection**: Ensure SIP doesn't interfere with clipboard access

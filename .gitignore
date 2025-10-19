@@ -15,7 +15,7 @@
 go.work
 
 # Build output
-clipboard-cleaner
+tracetrim
 /dist/
 /build/
 

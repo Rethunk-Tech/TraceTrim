@@ -1,4 +1,4 @@
-module com.github/rethunk-tech/no-reaction
+module com.github/rethunk-tech/tracetrim
 
 go 1.24.0
 

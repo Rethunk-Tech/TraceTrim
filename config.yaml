@@ -1,5 +1,5 @@
-# Clipboard Stack Trace Cleaner Configuration
-# This file contains default configuration values for the no-reaction application
+# TraceTrim Configuration
+# This file contains default configuration values for the TraceTrim application
 
 # Clipboard monitoring settings
 clipboard-polling-interval: 500ms

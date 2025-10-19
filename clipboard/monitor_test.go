@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"com.github/rethunk-tech/no-reaction/internal/models"
+	"com.github/rethunk-tech/tracetrim/internal/models"
 )
 
 // mockPlatform implements Platform interface for testing

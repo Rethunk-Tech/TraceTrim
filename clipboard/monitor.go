@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"com.github/rethunk-tech/no-reaction/internal/models"
+	"com.github/rethunk-tech/tracetrim/internal/models"
 )
 
 const (

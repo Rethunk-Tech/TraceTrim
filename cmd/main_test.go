@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"com.github/rethunk-tech/no-reaction/internal/config"
-	"com.github/rethunk-tech/no-reaction/internal/models"
-	"com.github/rethunk-tech/no-reaction/parser"
+	"com.github/rethunk-tech/tracetrim/internal/config"
+	"com.github/rethunk-tech/tracetrim/internal/models"
+	"com.github/rethunk-tech/tracetrim/parser"
 )
 
 // Test the testable logic components without requiring Monitor mocks

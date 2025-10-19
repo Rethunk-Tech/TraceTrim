@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"com.github/rethunk-tech/no-reaction/clipboard"
-	"com.github/rethunk-tech/no-reaction/internal/config"
-	"com.github/rethunk-tech/no-reaction/internal/models"
-	"com.github/rethunk-tech/no-reaction/parser"
+	"com.github/rethunk-tech/tracetrim/clipboard"
+	"com.github/rethunk-tech/tracetrim/internal/config"
+	"com.github/rethunk-tech/tracetrim/internal/models"
+	"com.github/rethunk-tech/tracetrim/parser"
 )
 
 // version is set during build time via ldflags
@@ -47,7 +47,7 @@ func main() {
 
 	// Print startup information based on verbosity
 	if !cfg.Output.Quiet {
-		fmt.Printf("Clipboard Stack Trace Cleaner v%s\n", version)
+		fmt.Printf("TraceTrim v%s\n", version)
 		if cfg.Output.Verbose {
 			fmt.Printf("Configuration loaded from: %s\n", cfg.App.ConfigFile)
 			fmt.Printf("Polling interval: %v\n", cfg.Clipboard.PollingInterval)

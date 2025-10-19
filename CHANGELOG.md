@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of Clipboard Stack Trace Cleaner
+- Initial release of TraceTrim
 - Cross-platform clipboard monitoring (Windows, macOS, Linux)
 - Automatic detection and cleaning of JavaScript/React stack traces
 - Remove repetitive stack frames while preserving essential error information
@@ -24,6 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Improved binary naming convention (`no-reaction-{platform}-{arch}`)
+- Improved binary naming convention (`tracetrim-{platform}-{arch}`)
 - Enhanced release automation with checksum verification
 - Better error handling and logging
