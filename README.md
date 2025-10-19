@@ -7,7 +7,8 @@ A simple, cross-platform CLI application that monitors your clipboard for JavaSc
 React stack traces often contain repetitive blocks of text that make them hard to read. For example:
 
 **Before ( cluttered with repetitive frames):**
-```
+
+```console
 Error: Objects are not valid as a React child
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
@@ -17,7 +18,8 @@ Error: Objects are not valid as a React child
 ```
 
 **After (clean and readable):**
-```
+
+```console
 // Removed 3 repetitive stack frame(s)
 Error: Objects are not valid as a React child
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
@@ -42,6 +44,7 @@ Check the [Releases](https://github.com/rethunk-tech/no-reaction/releases) page 
 ### Option 2: Build from Source
 
 **Prerequisites:**
+
 - Go 1.19 or later
 
 ```bash
@@ -79,13 +82,15 @@ Simply run the application:
 ```
 
 The application will:
+
 1. Start monitoring your clipboard
 2. Display a message indicating it's running
 3. Automatically detect and clean stack traces when you copy them
 4. Show a brief notification when cleaning occurs
 
 **Example output:**
-```
+
+```console
 Clipboard Stack Trace Cleaner
 Monitoring clipboard for JavaScript/React stack traces...
 Press Ctrl+C to exit
@@ -102,12 +107,15 @@ Press `Ctrl+C` to gracefully stop the clipboard monitoring.
 ## How It Works
 
 ### Detection
+
 The application uses pattern matching to identify JavaScript and React stack traces in clipboard content. It looks for:
+
 - JavaScript error patterns (`Error:`, `TypeError:`, `ReferenceError:`)
 - React-specific patterns (`react-dom.development.js`, `ReactErrorUtils.invokeGuardedCallback`)
 - Stack frame patterns (`at functionName (file.js:line:column)`)
 
 ### Cleaning Process
+
 1. **Parse**: Analyze the clipboard content to identify stack trace patterns
 2. **Identify Duplicates**: Find repetitive stack frames (same function, file, and line)
 3. **Remove**: Eliminate duplicate frames while preserving the first occurrence
@@ -116,6 +124,7 @@ The application uses pattern matching to identify JavaScript and React stack tra
 6. **Notify**: Show a brief message indicating what was cleaned
 
 ### What Gets Preserved
+
 - ✅ Original error messages
 - ✅ All unique stack frames
 - ✅ Indentation and formatting
@@ -123,6 +132,7 @@ The application uses pattern matching to identify JavaScript and React stack tra
 - ✅ File paths and line numbers
 
 ### What Gets Removed
+
 - ❌ Duplicate stack frames (same function + file + line)
 - ❌ Nothing else - all formatting and content is preserved
 
@@ -162,16 +172,19 @@ The parser automatically detects and handles stack traces from any of these file
 ## Platform-Specific Notes
 
 ### Windows
+
 - Uses Windows API for clipboard access
 - Requires Windows Vista or later
 - No additional dependencies
 
 ### macOS
+
 - Uses Cocoa NSPasteboard API
 - Requires macOS 10.6 or later
 - No additional dependencies
 
 ### Linux
+
 - Uses xclip or xsel (automatically detected)
 - Install xclip: `sudo apt-get install xclip` (Ubuntu/Debian)
 - Install xsel: `sudo yum install xsel` (CentOS/RHEL)
@@ -182,14 +195,17 @@ The parser automatically detects and handles stack traces from any of these file
 ### Clipboard Access Issues
 
 **Windows:**
+
 - Ensure the application has permission to access clipboard
 - Try running as administrator if issues persist
 
 **macOS:**
+
 - Grant Accessibility permissions in System Preferences > Security & Privacy
 - The application may prompt for permissions on first run
 
 **Linux:**
+
 - Install xclip or xsel as mentioned above
 - Ensure X11 is running and accessible
 
@@ -200,6 +216,7 @@ The application is designed to be conservative - it will only clean content that
 ### Performance
 
 The application uses minimal system resources:
+
 - Polls clipboard every 500ms
 - Uses efficient string processing
 - Minimal memory footprint
@@ -214,7 +231,7 @@ go test ./...
 
 ### Code Structure
 
-```
+```tree
 ├── cmd/                    # CLI application entry point
 │   └── main.go
 ├── clipboard/              # Clipboard monitoring module
@@ -240,6 +257,7 @@ To add support for a new platform:
 Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ### Areas for Enhancement
+
 - Additional stack trace formats
 - Configuration options
 - GUI interface
@@ -252,6 +270,7 @@ This project is open source. See LICENSE file for details.
 ## Support
 
 If you find this tool helpful, please consider:
+
 - ⭐ Starring the repository
 - 🐛 Reporting bugs or issues
 - 💡 Suggesting improvements
