@@ -400,8 +400,8 @@ func TestCleanResultStatistics(t *testing.T) {
 		t.Errorf("LinesBefore = %d, want %d", result.LinesBefore, expectedLinesBefore)
 	}
 
-	// After cleaning, should have 3 lines (Error + 2 collapsed frames)
-	expectedLinesAfter := 3
+	// After cleaning, should have 2 lines (Error + 1 collapsed frame)
+	expectedLinesAfter := 2
 	if result.LinesAfter != expectedLinesAfter {
 		t.Errorf("LinesAfter = %d, want %d", result.LinesAfter, expectedLinesAfter)
 	}
