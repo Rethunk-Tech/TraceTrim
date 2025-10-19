@@ -128,23 +128,23 @@ func TestStackTraceProcessingLogic(t *testing.T) {
 			expectCleaning: true,
 		},
 		{
-			name: "Non-stack-trace content",
-			content: "This is just regular text that should not be processed as a stack trace",
+			name:           "Non-stack-trace content",
+			content:        "This is just regular text that should not be processed as a stack trace",
 			expectCleaning: false,
 		},
 		{
-			name: "Empty content",
-			content: "",
+			name:           "Empty content",
+			content:        "",
 			expectCleaning: false,
 		},
 		{
-			name: "Very large content (should be rejected)",
-			content: strings.Repeat("A", 60*1024*1024), // 60MB
+			name:           "Very large content (should be rejected)",
+			content:        strings.Repeat("A", 60*1024*1024), // 60MB
 			expectCleaning: false,
 		},
 		{
-			name: "Invalid UTF-8 content",
-			content: string([]byte{0xff, 0xfe, 0xfd}),
+			name:           "Invalid UTF-8 content",
+			content:        string([]byte{0xff, 0xfe, 0xfd}),
 			expectCleaning: false,
 		},
 	}
@@ -300,10 +300,10 @@ func TestTimestampAndStatisticsLogic(t *testing.T) {
 func TestErrorHandlingInProcessing(t *testing.T) {
 	// Test that invalid content doesn't crash the application
 	invalidContents := []string{
-		string([]byte{0xff, 0xfe, 0xfd}), // Invalid UTF-8
+		string([]byte{0xff, 0xfe, 0xfd}),  // Invalid UTF-8
 		strings.Repeat("A", 60*1024*1024), // Very large content
-		"", // Empty content
-		"normal text", // Non-stack-trace content
+		"",                                // Empty content
+		"normal text",                     // Non-stack-trace content
 	}
 
 	for _, content := range invalidContents {
