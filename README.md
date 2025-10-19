@@ -64,12 +64,24 @@ go build -o clipboard-cleaner ./cmd/
 
 ### Option 3: Cross-platform Builds
 
+The application supports all major platforms with platform-specific optimizations:
+
 ```bash
-# Build for multiple platforms
+# Build for multiple platforms (build tags ensure correct implementation)
 GOOS=windows GOARCH=amd64 go build -o clipboard-cleaner-windows.exe ./cmd/
 GOOS=darwin GOARCH=amd64 go build -o clipboard-cleaner-macos ./cmd/
 GOOS=linux GOARCH=amd64 go build -o clipboard-cleaner-linux ./cmd/
+
+# Build for ARM architectures
+GOOS=darwin GOARCH=arm64 go build -o clipboard-cleaner-macos-arm64 ./cmd/
+GOOS=linux GOARCH=arm64 go build -o clipboard-cleaner-linux-arm64 ./cmd/
 ```
+
+**Note**: Each platform uses its optimal clipboard access method:
+
+- **Windows**: Native Windows API (`user32.dll`, `kernel32.dll`)
+- **macOS**: Native Cocoa NSPasteboard (Objective-C bridge via cgo)
+- **Linux**: xclip/xsel utilities (automatically detected and fallback)
 
 ## Usage
 
@@ -105,6 +117,23 @@ Press Ctrl+C to exit
 Press `Ctrl+C` to gracefully stop the clipboard monitoring.
 
 ## How It Works
+
+### Platform Architecture
+
+The application uses a clean platform abstraction architecture:
+
+- **Interface-based Design**: `Platform` interface defines clipboard operations (`GetContent()`, `SetContent()`, `GetName()`)
+- **Build Tag System**: Platform-specific implementations are selected at compile time using Go build tags
+- **Runtime Detection**: Each platform implementation handles its own initialization and error handling
+- **Cross-platform Compatibility**: Single binary works across all platforms with optimal native integration
+
+### Clipboard Integration
+
+Each platform uses its most efficient clipboard access method:
+
+- **Windows**: Direct Windows API calls for maximum performance
+- **macOS**: Native Cocoa NSPasteboard integration via Objective-C bridge
+- **Linux**: External clipboard utilities (xclip/xsel) with automatic fallback
 
 ### Detection
 
@@ -169,26 +198,85 @@ The application supports cleaning stack traces from all modern JavaScript and Ty
 
 The parser automatically detects and handles stack traces from any of these file types, regardless of build tools, bundlers, or development environments being used.
 
-## Platform-Specific Notes
+## Platform-Specific Implementation Details
 
 ### Windows
 
-- Uses Windows API for clipboard access
-- Requires Windows Vista or later
-- No additional dependencies
+**Implementation**: Native Windows API integration using `user32.dll` and `kernel32.dll`
+
+- **Clipboard Access**: Direct Windows clipboard API calls for optimal performance
+- **Requirements**: Windows Vista or later (Windows 7+ recommended)
+- **Dependencies**: None - uses only standard Windows libraries
+- **Permissions**: Standard application permissions, no special setup required
+- **Build Tags**: `//go:build windows` for platform-specific compilation
+
+**Technical Details**:
+
+- Uses `OpenClipboard`, `GetClipboardData`, `SetClipboardData` Windows APIs
+- Handles UTF-16 text conversion for Windows clipboard format
+- Proper memory management with `GlobalAlloc`/`GlobalFree` and `GlobalLock`/`GlobalUnlock`
 
 ### macOS
 
-- Uses Cocoa NSPasteboard API
-- Requires macOS 10.6 or later
-- No additional dependencies
+**Implementation**: Cocoa NSPasteboard integration using Objective-C bridge via cgo
+
+- **Clipboard Access**: Native macOS NSPasteboard API for seamless integration
+- **Requirements**: macOS 10.6 or later (macOS 10.15+ recommended)
+- **Dependencies**: None - uses only system Cocoa framework
+- **Permissions**: May require Accessibility permissions on first run
+- **Build Tags**: `//go:build darwin` for platform-specific compilation
+
+**Technical Details**:
+
+- Cgo interface to Objective-C Cocoa NSPasteboard APIs
+- Automatic memory management with `@autoreleasepool`
+- Handles NSString conversion between Go and Objective-C
+- Uses `NSPasteboardTypeString` for text content
+
+**Setup**:
+
+```bash
+# Grant permissions if prompted
+# System Preferences > Security & Privacy > Accessibility
+```
 
 ### Linux
 
-- Uses xclip or xsel (automatically detected)
-- Install xclip: `sudo apt-get install xclip` (Ubuntu/Debian)
-- Install xsel: `sudo yum install xsel` (CentOS/RHEL)
-- Fallback: Direct X11 clipboard access
+**Implementation**: External clipboard utilities with fallback support
+
+- **Primary Tool**: xclip (supports both X11 and Wayland via XWayland)
+- **Fallback Tool**: xsel (alternative clipboard utility)
+- **Requirements**: X11 environment or Wayland with XWayland
+- **Dependencies**: Install either xclip or xsel (automatically detected)
+
+**Technical Details**:
+
+- Uses `exec.Command` to interface with external clipboard tools
+- Automatic tool detection and fallback mechanism
+- Supports both reading (`xclip -o`/`xsel -ob`) and writing (`xclip -i`/`xsel -ib`)
+- Handles text content via stdin/stdout pipes
+
+**Installation**:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install xclip
+
+# Alternative for Ubuntu/Debian
+sudo apt-get install xsel
+
+# CentOS/RHEL/Fedora
+sudo yum install xsel
+
+# Arch Linux
+sudo pacman -S xclip
+```
+
+**Environment Support**:
+
+- ✅ X11 desktop environments (GNOME, KDE, Xfce, etc.)
+- ✅ Wayland with XWayland compatibility layer
+- ✅ Remote X11 sessions via SSH with X forwarding
 
 ## Troubleshooting
 
@@ -196,18 +284,26 @@ The parser automatically detects and handles stack traces from any of these file
 
 **Windows:**
 
-- Ensure the application has permission to access clipboard
-- Try running as administrator if issues persist
+- **Permission Issues**: Ensure the application has permission to access clipboard (standard Windows permissions)
+- **Administrator Rights**: Try running as administrator if clipboard access fails
+- **Windows Version**: Requires Windows Vista or later; Windows 7+ recommended
+- **Error Messages**: Check for Windows API errors in console output
 
 **macOS:**
 
-- Grant Accessibility permissions in System Preferences > Security & Privacy
-- The application may prompt for permissions on first run
+- **Accessibility Permissions**: Grant permissions in System Preferences > Security & Privacy > Accessibility
+- **First Run Prompt**: The application may prompt for permissions on first launch
+- **System Integrity Protection**: Ensure SIP doesn't interfere with clipboard access
+- **Error Messages**: Look for cgo/Objective-C bridge errors in console output
 
 **Linux:**
 
-- Install xclip or xsel as mentioned above
-- Ensure X11 is running and accessible
+- **Missing Dependencies**: Install xclip or xsel (see installation section above)
+- **X11 Environment**: Ensure X11 is running (`echo $DISPLAY` should show display)
+- **Wayland Compatibility**: Use XWayland for Wayland environments
+- **SSH Sessions**: Enable X11 forwarding (`ssh -X`) for remote sessions
+- **Permission Issues**: May need `xhost +` for local clipboard access
+- **Tool Detection**: Application automatically detects available tools and falls back
 
 ### False Positives
 
@@ -236,7 +332,9 @@ go test ./...
 │   └── main.go
 ├── clipboard/              # Clipboard monitoring module
 │   ├── monitor.go          # Cross-platform clipboard interface
-│   └── monitor_windows.go  # Windows-specific implementation
+│   ├── monitor_windows.go  # Windows-specific implementation
+│   ├── monitor_darwin.go   # macOS-specific implementation (Cocoa NSPasteboard)
+│   └── monitor_linux.go    # Linux-specific implementation (xclip/xsel)
 ├── parser/                 # Stack trace parsing and cleaning
 │   ├── parser.go           # Core parsing logic
 │   └── parser_test.go      # Comprehensive tests
@@ -249,8 +347,20 @@ go test ./...
 To add support for a new platform:
 
 1. Create `monitor_[platform].go` in the `clipboard/` directory
-2. Implement the `Platform` interface
-3. Update `getPlatform()` in `monitor.go` to detect and return your implementation
+2. Add appropriate build tags (`//go:build [platform]` and `// +build [platform]`)
+3. Implement the `Platform` interface with `GetContent()`, `SetContent()`, and `GetName()` methods
+4. Add a `getPlatform()` function that returns your platform implementation
+5. Update this documentation to include platform-specific details
+
+**Platform Interface:**
+
+```go
+type Platform interface {
+    GetContent() (string, error)
+    SetContent(content string) error
+    GetName() string
+}
+```
 
 ## Contributing
 
