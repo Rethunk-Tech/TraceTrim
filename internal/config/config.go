@@ -9,22 +9,57 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	// Default clipboard polling interval
+	DefaultPollingInterval = 500 * time.Millisecond
+
+	// Default maximum clipboard content size (1MB)
+	DefaultMaxContentSize = 1024 * 1024
+
+	// Minimum clipboard content size (1KB)
+	MinContentSize = 1024
+
+	// Maximum clipboard content size (50MB)
+	MaxContentSize = 50 * 1024 * 1024
+
+	// Maximum clipboard polling interval (10 seconds)
+	MaxPollingInterval = 10 * time.Second
+
+	// Minimum parser stack lines for detection
+	MinStackLines = 1
+
+	// Maximum parser stack lines for detection
+	MaxStackLines = 100
+
+	// Minimum parser stack trace length
+	MinStackTraceLength = 10
+
+	// Maximum parser stack trace length
+	MaxStackTraceLength = 10000
+
+	// Default parser minimum stack lines for detection
+	DefaultMinStackLines = 2
+
+	// Default parser minimum stack trace length
+	DefaultMinStackTraceLength = 20
+)
+
 // Config holds all configuration for the application
 type Config struct {
-	// Clipboard monitoring settings
-	Clipboard ClipboardConfig
+	// Application settings (contains string pointer)
+	App AppConfig
 
-	// Output and logging settings
+	// Output and logging settings (contains string pointer)
 	Output OutputConfig
 
-	// Parser settings
-	Parser ParserConfig
-
-	// Script mode settings
+	// Script mode settings (contains string pointer)
 	Script ScriptConfig
 
-	// Application settings
-	App AppConfig
+	// Parser settings (contains string slice pointer)
+	Parser ParserConfig
+
+	// Clipboard monitoring settings (no pointers)
+	Clipboard ClipboardConfig
 
 	// Script mode flag (simplified)
 	ScriptMode bool
@@ -44,11 +79,11 @@ type ClipboardConfig struct {
 
 // OutputConfig contains output and logging configuration
 type OutputConfig struct {
-	// Verbose enables detailed logging
-	Verbose bool
-
 	// LogFile is the path to log file (empty for stdout)
 	LogFile string
+
+	// Verbose enables detailed logging
+	Verbose bool
 
 	// ShowTimestamp controls whether to show timestamps in output
 	ShowTimestamp bool
@@ -59,23 +94,23 @@ type OutputConfig struct {
 
 // ParserConfig contains parser-specific configuration
 type ParserConfig struct {
+	// CustomPatterns allows adding custom regex patterns for stack trace detection
+	CustomPatterns []string
+
 	// MinStackLinesForDetection minimum lines to consider content a stack trace
 	MinStackLinesForDetection int
 
 	// MinStackTraceLength minimum content length to consider for stack trace detection
 	MinStackTraceLength int
-
-	// CustomPatterns allows adding custom regex patterns for stack trace detection
-	CustomPatterns []string
 }
 
 // ScriptConfig contains script mode configuration
 type ScriptConfig struct {
-	// Enabled determines if script mode is active
-	Enabled bool
-
 	// OutputFormat controls the output format in script mode
 	OutputFormat string
+
+	// Enabled determines if script mode is active
+	Enabled bool
 
 	// ShowStatistics controls whether to show cleaning statistics in script mode
 	ShowStatistics bool
@@ -94,8 +129,8 @@ type AppConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Clipboard: ClipboardConfig{
-			PollingInterval: 500 * time.Millisecond,
-			MaxContentSize:  1024 * 1024, // 1MB
+			PollingInterval: DefaultPollingInterval,
+			MaxContentSize:  DefaultMaxContentSize, // 1MB
 		},
 		Output: OutputConfig{
 			Verbose:       false,
@@ -104,8 +139,8 @@ func DefaultConfig() *Config {
 			Quiet:         false,
 		},
 		Parser: ParserConfig{
-			MinStackLinesForDetection: 2,
-			MinStackTraceLength:       20,
+			MinStackLinesForDetection: DefaultMinStackLines,
+			MinStackTraceLength:       DefaultMinStackTraceLength,
 			CustomPatterns:            []string{},
 		},
 		Script: ScriptConfig{
@@ -197,14 +232,14 @@ func LoadConfig() (*Config, error) {
 // BindFlags binds command line flags to viper
 func BindFlags() error {
 	pflag.String("config", "config.yaml", "Configuration file path")
-	pflag.Duration("clipboard-polling-interval", 500*time.Millisecond, "Clipboard polling interval")
-	pflag.Int("clipboard-max-content-size", 1024*1024, "Maximum clipboard content size in bytes")
+	pflag.Duration("clipboard-polling-interval", DefaultPollingInterval, "Clipboard polling interval")
+	pflag.Int("clipboard-max-content-size", DefaultMaxContentSize, "Maximum clipboard content size in bytes")
 	pflag.Bool("verbose", false, "Enable verbose output")
 	pflag.String("log-file", "", "Log file path (empty for stdout)")
 	pflag.Bool("quiet", false, "Suppress non-essential output")
 	pflag.Bool("show-timestamp", true, "Show timestamps in output")
-	pflag.Int("parser-min-stack-lines", 2, "Minimum stack lines for detection")
-	pflag.Int("parser-min-stack-trace-length", 20, "Minimum stack trace length")
+	pflag.Int("parser-min-stack-lines", DefaultMinStackLines, "Minimum stack lines for detection")
+	pflag.Int("parser-min-stack-trace-length", DefaultMinStackTraceLength, "Minimum stack trace length")
 	pflag.StringSlice("parser-custom-patterns", []string{}, "Custom regex patterns for stack trace detection")
 	pflag.Bool("script-mode", false, "Enable script mode (read from STDIN, write to STDOUT, then exit)")
 	pflag.Bool("auto-detect-script-mode", true, "Auto-detect script mode based on non-interactive environment")
@@ -226,29 +261,29 @@ func ValidateConfig(config *Config) error {
 	if config.Clipboard.PollingInterval < 50*time.Millisecond {
 		return fmt.Errorf("clipboard polling interval must be at least 50ms")
 	}
-	if config.Clipboard.PollingInterval > 10*time.Second {
+	if config.Clipboard.PollingInterval > MaxPollingInterval {
 		return fmt.Errorf("clipboard polling interval must be at most 10 seconds")
 	}
 
-	if config.Clipboard.MaxContentSize < 1024 {
+	if config.Clipboard.MaxContentSize < MinContentSize {
 		return fmt.Errorf("clipboard max content size must be at least 1KB")
 	}
-	if config.Clipboard.MaxContentSize > 50*1024*1024 {
+	if config.Clipboard.MaxContentSize > MaxContentSize {
 		return fmt.Errorf("clipboard max content size must be at most 50MB")
 	}
 
 	// Validate parser configuration
-	if config.Parser.MinStackLinesForDetection < 1 {
+	if config.Parser.MinStackLinesForDetection < MinStackLines {
 		return fmt.Errorf("parser min stack lines must be at least 1")
 	}
-	if config.Parser.MinStackLinesForDetection > 100 {
+	if config.Parser.MinStackLinesForDetection > MaxStackLines {
 		return fmt.Errorf("parser min stack lines must be at most 100")
 	}
 
-	if config.Parser.MinStackTraceLength < 10 {
+	if config.Parser.MinStackTraceLength < MinStackTraceLength {
 		return fmt.Errorf("parser min stack trace length must be at least 10")
 	}
-	if config.Parser.MinStackTraceLength > 10000 {
+	if config.Parser.MinStackTraceLength > MaxStackTraceLength {
 		return fmt.Errorf("parser min stack trace length must be at most 10000")
 	}
 
