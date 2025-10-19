@@ -41,7 +41,7 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	// Get data in Unicode text format
 	hMem, _, _ := getClipboardData.Call(cfUnicodeText)
 	if hMem == 0 {
-		return "", fmt.Errorf("no Unicode text data available in Windows clipboard")
+		return "", fmt.Errorf("no Unicode text data available in Windows clipboard (format: %d)", cfUnicodeText)
 	}
 
 	// Lock the memory and get pointer
@@ -82,13 +82,13 @@ func (w *windowsPlatform) GetContent() (string, error) {
 
 // SetContent sets text content to Windows clipboard
 func (w *windowsPlatform) SetContent(content string) error {
-	// Convert string to UTF-16 bytes
+	// Convert string to UTF-16 bytes (includes null terminator)
 	utf16, err := syscall.UTF16FromString(content)
 	if err != nil {
 		return fmt.Errorf("failed to convert string to UTF-16: %w", err)
 	}
 
-	// Calculate size needed for the memory block
+	// Calculate size needed for the memory block (includes null terminator)
 	size := len(utf16) * utf16CharSize
 
 	// Open clipboard
@@ -101,12 +101,13 @@ func (w *windowsPlatform) SetContent(content string) error {
 	}()
 
 	// Empty clipboard
-	if _, _, err := emptyClipboard.Call(); err != nil {
-		return fmt.Errorf("failed to empty Windows clipboard: %v", err)
+	ret, _, _ = emptyClipboard.Call()
+	if ret == 0 {
+		return fmt.Errorf("failed to empty Windows clipboard")
 	}
 
-	// Allocate global memory
-	hMem, _, _ := globalAlloc.Call(gmemMoveable, uintptr(size+utf16CharSize))
+	// Allocate global memory (moveable and zero-initialized)
+	hMem, _, _ := globalAlloc.Call(gmemMoveable|gmemZeroInit, uintptr(size))
 	if hMem == 0 {
 		return fmt.Errorf("failed to allocate Windows global memory: insufficient memory")
 	}
@@ -118,17 +119,18 @@ func (w *windowsPlatform) SetContent(content string) error {
 		return fmt.Errorf("failed to lock Windows clipboard memory object")
 	}
 
-	// Copy UTF-16 data using Windows API pattern
+	// Copy UTF-16 data including null terminator using Windows API pattern
 	srcPtr := uintptr(unsafe.Pointer(&utf16[0]))
 	dstPtr := uintptr(lockRet)
 
-	// Use Windows memory copy function for safety
+	// Use Windows memory copy function for safety - copy all data including null terminator
 	kernel32.NewProc("RtlMoveMemory").Call(dstPtr, srcPtr, uintptr(size))
 
-	// Unlock memory
-	if _, _, err := globalUnlock.Call(hMem); err != nil {
+	// Unlock memory - GlobalUnlock returns 0 on failure, non-zero on success
+	unlockRet, _, _ := globalUnlock.Call(hMem)
+	if unlockRet == 0 {
 		globalFree.Call(hMem) //nolint:errcheck // Ignore errors in cleanup
-		return fmt.Errorf("failed to unlock Windows clipboard memory object: %v", err)
+		return fmt.Errorf("failed to unlock Windows clipboard memory object")
 	}
 
 	// Set clipboard data (Windows will own the memory after this call)
@@ -162,6 +164,7 @@ var (
 )
 
 const (
-	cfUnicodeText = 13
+	cfUnicodeText = 13 // CF_UNICODETEXT
 	gmemMoveable  = 0x0002
+	gmemZeroInit  = 0x0040
 )
