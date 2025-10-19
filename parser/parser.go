@@ -20,6 +20,10 @@ const (
 
 	// Estimation constants
 	charsPerStackFrame = 50
+
+	// Performance optimization constants
+	minStackTraceLength = 20
+	commentBufferExtra = 50
 )
 
 // Pre-compiled regex patterns for better performance
@@ -52,7 +56,7 @@ var (
 // Optimized to avoid allocations for short content and improve performance
 func IsStackTrace(content string) bool {
 	// Early return for obviously non-stack-trace content
-	if len(content) < 20 {
+	if len(content) < minStackTraceLength {
 		return false
 	}
 
@@ -141,7 +145,7 @@ func CleanStackTrace(content string) string {
 	if consecutiveDuplicates > 0 {
 		// Reset builder and rebuild with the note
 		builder.Reset()
-		builder.Grow(estimatedSize + 50) // Extra space for the comment
+		builder.Grow(estimatedSize + commentBufferExtra) // Extra space for the comment
 		builder.WriteString(fmt.Sprintf("// Removed %d repetitive stack frame(s)\n", consecutiveDuplicates))
 		builder.WriteString(result)
 		result = builder.String()
