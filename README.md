@@ -128,27 +128,44 @@ Press `Ctrl+C` to gracefully stop the clipboard monitoring.
 
 ### Script Mode
 
-TraceTrim can also be used in scripts by reading from STDIN and writing cleaned output to STDOUT:
+TraceTrim can be used in scripts in two ways:
+
+#### Automatic Detection (Recommended)
+TraceTrim automatically detects when it's being used in a non-interactive environment (scripts, pipes, redirection) and switches to script mode automatically:
 
 ```bash
-# Clean a stack trace from a file
-cat stack_trace.txt | ./tracetrim --script-mode > cleaned_stack_trace.txt
+# Clean a stack trace from a file (auto-detected)
+cat stack_trace.txt | ./tracetrim > cleaned_stack_trace.txt
 
-# Use in a pipeline
+# Use in a pipeline (auto-detected)
 echo "Error: Something went wrong
     at myFunction (script.js:10:5)
-    at myFunction (script.js:10:5)" | ./tracetrim --script-mode
+    at myFunction (script.js:10:5)" | ./tracetrim
 
-# Process multiple stack traces
-find . -name "*.log" -exec grep -l "Error:" {} \; | xargs cat | ./tracetrim --script-mode
+# Process multiple stack traces (auto-detected)
+find . -name "*.log" -exec grep -l "Error:" {} \; | xargs cat | ./tracetrim
+```
+
+#### Manual Script Mode
+You can also explicitly enable script mode with the `--script-mode` flag:
+
+```bash
+# Explicitly enable script mode
+cat stack_trace.txt | ./tracetrim --script-mode > cleaned_stack_trace.txt
 ```
 
 **Script Mode Features:**
+- **Automatic Detection**: Detects pipes, redirection, and CI environments
 - Reads stack traces from STDIN
 - Outputs cleaned content to STDOUT
 - No headers, footers, or status messages (clean output for scripts)
 - Exits immediately after processing
 - Compatible with shell pipelines and automation scripts
+
+**Configuration:**
+- `--auto-detect-script-mode=true`: Enable automatic detection (default)
+- `--auto-detect-script-mode=false`: Disable automatic detection
+- `--script-mode`: Manually enable script mode (overrides auto-detection)
 
 ## How It Works
 

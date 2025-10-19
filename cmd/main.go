@@ -15,6 +15,7 @@ import (
 	"com.github/rethunk-tech/tracetrim/internal/config"
 	"com.github/rethunk-tech/tracetrim/internal/models"
 	"com.github/rethunk-tech/tracetrim/parser"
+	"github.com/mattn/go-isatty"
 )
 
 // version is set during build time via ldflags
@@ -25,6 +26,27 @@ const (
 	stackTraceTypeReact      = "React"
 	stackTraceTypeJavaScript = "JavaScript"
 )
+
+// isNonInteractiveEnvironment detects if we're running in a non-interactive environment
+// such as a script, pipeline, or redirected I/O
+func isNonInteractiveEnvironment() bool {
+	// Check if stdin is not a terminal (data is likely being piped in)
+	if !isatty.IsTerminal(os.Stdin.Fd()) {
+		return true
+	}
+
+	// Check if stdout is not a terminal (output is likely being redirected)
+	if !isatty.IsTerminal(os.Stdout.Fd()) {
+		return true
+	}
+
+	// Check for common CI/script environment variables
+	if os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != "" || os.Getenv("GITLAB_CI") != "" {
+		return true
+	}
+
+	return false
+}
 
 func main() {
 	// Bind command line flags to viper
@@ -43,10 +65,18 @@ func main() {
 		log.Fatalf("Invalid configuration: %v", err)
 	}
 
+	// Auto-detect script mode if in non-interactive environment and auto-detection is enabled
+	if !cfg.ScriptMode && cfg.AutoDetectScriptMode && isNonInteractiveEnvironment() {
+		cfg.ScriptMode = true
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Auto-detected non-interactive environment, switching to script mode\n")
+		}
+	}
+
 	// Set up logging based on configuration
 	// Note: File logging is not implemented in this version
 
-	// Check if script mode is enabled
+	// Check if script mode is enabled (either manually or auto-detected)
 	if cfg.ScriptMode {
 		// Run in script mode - read from STDIN, process, write to STDOUT, then exit
 		// No header output in script mode to avoid breaking scripts
@@ -163,11 +193,10 @@ func processScriptInput(content string, cfg *config.Config) {
 
 	// Check if this looks like a stack trace
 	if !parser.IsStackTrace(content) {
+		// In script mode, output non-stack-trace content verbatim for compatibility
+		fmt.Print(content)
 		if cfg.Output.Verbose {
-			fmt.Fprintf(os.Stderr, "No stack trace detected in input\n")
-		}
-		if cfg.Script.ExitCodeOnError {
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "No stack trace detected in input, passing through verbatim\n")
 		}
 		return
 	}
@@ -177,10 +206,7 @@ func processScriptInput(content string, cfg *config.Config) {
 
 	// Check if content actually changed
 	if cleanResult.Cleaned == content {
-		if cfg.Output.Verbose {
-			fmt.Fprintf(os.Stderr, "No changes needed - content is already clean\n")
-		}
-		// Even if no changes, we still output the original content in script mode
+		// Content is already clean, output it verbatim (no verbose message in script mode)
 		outputScriptResult(&cleanResult, cfg, false)
 		return
 	}

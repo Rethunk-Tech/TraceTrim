@@ -28,6 +28,9 @@ type Config struct {
 
 	// Script mode flag (simplified)
 	ScriptMode bool
+
+	// Auto-detect script mode based on environment
+	AutoDetectScriptMode bool
 }
 
 // ClipboardConfig contains clipboard monitoring configuration
@@ -114,7 +117,8 @@ func DefaultConfig() *Config {
 		App: AppConfig{
 			ConfigFile: "config.yaml",
 		},
-		ScriptMode: false,
+		ScriptMode:           false,
+		AutoDetectScriptMode: true, // Enable auto-detection by default
 	}
 }
 
@@ -183,6 +187,9 @@ func LoadConfig() (*Config, error) {
 	if v.IsSet("script-mode") {
 		config.ScriptMode = v.GetBool("script-mode")
 	}
+	if v.IsSet("auto-detect-script-mode") {
+		config.AutoDetectScriptMode = v.GetBool("auto-detect-script-mode")
+	}
 
 	return config, nil
 }
@@ -200,6 +207,7 @@ func BindFlags() error {
 	pflag.Int("parser-min-stack-trace-length", 20, "Minimum stack trace length")
 	pflag.StringSlice("parser-custom-patterns", []string{}, "Custom regex patterns for stack trace detection")
 	pflag.Bool("script-mode", false, "Enable script mode (read from STDIN, write to STDOUT, then exit)")
+	pflag.Bool("auto-detect-script-mode", true, "Auto-detect script mode based on non-interactive environment")
 
 	// Bind flags to the global viper instance FIRST
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {

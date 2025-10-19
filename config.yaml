@@ -19,5 +19,8 @@ parser-custom-patterns: []
 # Script mode flag (simplified)
 script-mode: false
 
+# Auto-detect script mode based on environment
+auto-detect-script-mode: true
+
 # Application settings
 config-file: config.yaml
