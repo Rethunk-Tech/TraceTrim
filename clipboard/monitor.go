@@ -11,8 +11,8 @@ import (
 
 // Monitor handles clipboard monitoring across platforms
 type Monitor struct {
-	platform Platform
-	stopChan chan struct{}
+	platform    Platform
+	stopChan    chan struct{}
 	lastContent string
 }
 
