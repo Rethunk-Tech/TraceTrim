@@ -13,9 +13,10 @@ const (
 	minStackLinesForDetection = 2
 
 	// Pattern matching constants
-	minFunctionPatternMatches = 4
-	minAltPatternMatches      = 4
-	minJSPatternMatches       = 3
+	minFunctionPatternMatches  = 4
+	minAltPatternMatches       = 4
+	minJSPatternMatches        = 3
+	minComponentPatternMatches = 2
 
 	// Estimation constants
 	charsPerStackFrame = 50
@@ -212,7 +213,7 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 		}
 
 		// Look for React component names using enhanced pattern (includes lifecycle methods)
-		if matches := componentPattern.FindStringSubmatch(line); len(matches) >= 2 {
+		if matches := componentPattern.FindStringSubmatch(line); len(matches) >= minComponentPatternMatches {
 			component = matches[1]
 		}
 

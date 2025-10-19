@@ -12,6 +12,11 @@ import (
 // windowsPlatform implements Platform interface for Windows
 type windowsPlatform struct{}
 
+const (
+	// UTF-16 character size in bytes
+	utf16CharSize = 2
+)
+
 // getPlatform returns the appropriate platform implementation
 func getPlatform() (Platform, error) {
 	return &windowsPlatform{}, nil
@@ -56,7 +61,7 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	utf16Ptr := (*uint16)(unsafe.Pointer(lockRet))
 	length := 0
 	for *utf16Ptr != 0 {
-				utf16Ptr = (*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(utf16Ptr)) + utf16CharSize))
+		utf16Ptr = (*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(utf16Ptr)) + utf16CharSize))
 		length++
 	}
 
@@ -73,11 +78,6 @@ func (w *windowsPlatform) SetContent(content string) error {
 	if err != nil {
 		return fmt.Errorf("failed to convert string to UTF-16: %w", err)
 	}
-
-const (
-	// UTF-16 character size in bytes
-	utf16CharSize = 2
-)
 
 	// Calculate size needed for the memory block
 	size := len(utf16) * utf16CharSize
