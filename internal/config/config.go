@@ -49,14 +49,14 @@ type Config struct {
 	// Application settings
 	App AppConfig
 
-	// Parser settings
-	Parser ParserConfig
-
 	// Output and logging settings
 	Output OutputConfig
 
 	// Script mode settings
 	Script ScriptConfig
+
+	// Parser settings
+	Parser ParserConfig
 
 	// Clipboard monitoring settings
 	Clipboard ClipboardConfig
