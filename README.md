@@ -147,6 +147,18 @@ ReferenceError: x is not defined
     at eval (eval at <anonymous> (script.js:1:1))
 ```
 
+## Supported File Types
+
+The application supports cleaning stack traces from all modern JavaScript and TypeScript file formats:
+
+- **JavaScript (.js)** - Standard JavaScript files
+- **TypeScript (.ts)** - TypeScript source files
+- **React JSX (.jsx)** - React JavaScript XML components
+- **React TSX (.tsx)** - React TypeScript XML components
+- **Modern modules (.mjs)** - ES modules and modern JavaScript
+
+The parser automatically detects and handles stack traces from any of these file types, regardless of build tools, bundlers, or development environments being used.
+
 ## Platform-Specific Notes
 
 ### Windows
