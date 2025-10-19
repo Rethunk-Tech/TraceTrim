@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"com.github/rethunk-tech/tracetrim/internal/models"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -28,6 +29,42 @@ type Platform interface {
 	GetContent() (string, error)
 	SetContent(content string) error
 	GetName() string
+}
+
+// standardPlatform implements Platform interface using golang.design/x/clipboard
+type standardPlatform struct{}
+
+// GetName returns the platform name
+func (s *standardPlatform) GetName() string {
+	return "Standard"
+}
+
+// GetContent retrieves text content from clipboard using standard library
+func (s *standardPlatform) GetContent() (string, error) {
+	// Initialize clipboard if needed
+	err := clipboard.Init()
+	if err != nil {
+		return "", fmt.Errorf("failed to initialize clipboard: %w", err)
+	}
+
+	data := clipboard.Read(clipboard.FmtText)
+	if data == nil {
+		return "", fmt.Errorf("no text data available in clipboard")
+	}
+
+	return string(data), nil
+}
+
+// SetContent sets text content to clipboard using standard library
+func (s *standardPlatform) SetContent(content string) error {
+	// Initialize clipboard if needed
+	err := clipboard.Init()
+	if err != nil {
+		return fmt.Errorf("failed to initialize clipboard: %w", err)
+	}
+
+	clipboard.Write(clipboard.FmtText, []byte(content))
+	return nil
 }
 
 // NewMonitor creates a new clipboard monitor for the current platform

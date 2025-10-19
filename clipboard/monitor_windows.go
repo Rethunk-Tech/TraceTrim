@@ -19,7 +19,7 @@ const (
 
 // getPlatform returns the appropriate platform implementation
 func getPlatform() (Platform, error) {
-	return &windowsPlatform{}, nil
+	return &standardPlatform{}, nil
 }
 
 // GetName returns the platform name
