@@ -29,7 +29,6 @@ func IsStackTrace(content string) bool {
 	stackLineCount := 0
 
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
@@ -44,7 +43,7 @@ func IsStackTrace(content string) bool {
 		}
 
 		// If we find multiple stack-like lines, it's likely a stack trace
-		if stackLineCount >= 3 {
+		if stackLineCount >= 2 {
 			return true
 		}
 	}
@@ -64,8 +63,11 @@ func CleanStackTrace(content string) string {
 	var consecutiveDuplicates int
 
 	for _, line := range lines {
+		originalLine := line
 		line = strings.TrimSpace(line)
 		if line == "" {
+			// Preserve empty lines
+			cleanedLines = append(cleanedLines, originalLine)
 			continue
 		}
 
@@ -82,11 +84,11 @@ func CleanStackTrace(content string) string {
 				continue // Skip this duplicate frame
 			} else {
 				seenFrames[frameSignature] = true
-				cleanedLines = append(cleanedLines, line)
+				cleanedLines = append(cleanedLines, originalLine)
 			}
 		} else {
 			// Non-frame line (error message, etc.) - always include
-			cleanedLines = append(cleanedLines, line)
+			cleanedLines = append(cleanedLines, originalLine)
 		}
 	}
 
@@ -108,8 +110,12 @@ func extractFrameSignature(line string) string {
 
 	matches := frameRegex.FindStringSubmatch(line)
 	if len(matches) >= 4 {
-		// Return function + file + line as unique signature
-		return fmt.Sprintf("%s|%s|%s", matches[1], matches[2], matches[3])
+		// Return function + file + line as unique signature (trim "at " prefix if present)
+		functionName := strings.TrimSpace(matches[1])
+		if strings.HasPrefix(functionName, "at ") {
+			functionName = strings.TrimPrefix(functionName, "at ")
+		}
+		return fmt.Sprintf("%s|%s|%s", functionName, matches[2], matches[3])
 	}
 
 	return line // Fallback to entire line if parsing fails
@@ -135,28 +141,38 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 
 	// Extract stack frames and look for React component info
 	for _, line := range lines {
+		originalLine := line
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 
-		// Extract file and line info for source
-		filePattern := `([^:]+):(\d+):(\d+)`
-		fileRegex := regexp.MustCompile(filePattern)
+		// Extract file and line info for source - look for patterns like "at function (file.js:123:45)"
+		// Look for .js:line:column pattern (most common case)
+		jsFilePattern := `\.js:(\d+):(\d+)`
+		jsFileRegex := regexp.MustCompile(jsFilePattern)
 
-		if matches := fileRegex.FindStringSubmatch(line); len(matches) >= 3 {
-			source = fmt.Sprintf("%s:%s", matches[1], matches[2])
+		if jsMatches := jsFileRegex.FindStringSubmatch(line); len(jsMatches) >= 3 {
+			// Extract the filename by looking backwards from the .js match
+			jsIndex := strings.LastIndex(line, ".js:")
+			if jsIndex != -1 {
+				start := strings.LastIndex(line[:jsIndex], "(")
+				if start != -1 {
+					filename := line[start+1 : jsIndex+3] // Include .js
+					source = fmt.Sprintf("%s:%s", strings.TrimSpace(filename), jsMatches[1])
+				}
+			}
 		}
 
-		// Look for React component names
-		componentPattern := `in\s+(\w+)`
+		// Look for React component names - look for patterns like "ComponentName.render"
+		componentPattern := `(\w+)\.render\s*\(`
 		componentRegex := regexp.MustCompile(componentPattern)
 
 		if matches := componentRegex.FindStringSubmatch(line); len(matches) >= 2 {
 			component = matches[1]
 		}
 
-		stackFrames = append(stackFrames, line)
+		stackFrames = append(stackFrames, originalLine)
 	}
 
 	return &models.ErrorInfo{
