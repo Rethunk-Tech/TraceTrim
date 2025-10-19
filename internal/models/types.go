@@ -29,9 +29,12 @@ type StackFrame struct {
 //
 //nolint:govet // Field alignment is acceptable for this struct
 type CleanResult struct {
-	Frames    []StackFrame // Parsed stack frames (24 bytes - pointer + len + cap)
-	ErrorInfo *ErrorInfo   // Extracted error information (8 bytes)
-	Original  string       // Original stack trace (8 bytes)
-	Cleaned   string       // Cleaned stack trace (8 bytes)
-	Removed   int          // Number of repetitive blocks removed (8 bytes)
+	Frames      []StackFrame // Parsed stack frames (24 bytes - pointer + len + cap)
+	ErrorInfo   *ErrorInfo   // Extracted error information (8 bytes)
+	Original    string       // Original stack trace (8 bytes)
+	Cleaned     string       // Cleaned stack trace (8 bytes)
+	Removed     int          // Number of repetitive blocks removed (8 bytes)
+	BytesSaved  int          // Number of bytes saved by cleaning (8 bytes)
+	LinesBefore int          // Total lines in original content (8 bytes)
+	LinesAfter  int          // Total lines in cleaned content (8 bytes)
 }
