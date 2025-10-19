@@ -4,10 +4,10 @@ import "time"
 
 // ErrorInfo contains the essential information from a stack trace
 type ErrorInfo struct {
-	Message   string   // The main error message
-	Stack     []string // Individual stack frames
-	Source    string   // Original source file/line if available
-	Component string   // React component name if applicable
+	Stack     []string // Individual stack frames (24 bytes - pointer + len + cap)
+	Message   string   // The main error message (8 bytes)
+	Source    string   // Original source file/line if available (8 bytes)
+	Component string   // React component name if applicable (8 bytes)
 }
 
 // ClipboardContent represents clipboard data with metadata
@@ -27,9 +27,9 @@ type StackFrame struct {
 
 // CleanResult contains the cleaned stack trace and metadata
 type CleanResult struct {
-	Original  string       // Original stack trace
-	Cleaned   string       // Cleaned stack trace
-	Removed   int          // Number of repetitive blocks removed
-	Frames    []StackFrame // Parsed stack frames
-	ErrorInfo *ErrorInfo   // Extracted error information
+	Frames    []StackFrame // Parsed stack frames (24 bytes - pointer + len + cap)
+	ErrorInfo *ErrorInfo   // Extracted error information (8 bytes)
+	Original  string       // Original stack trace (8 bytes)
+	Cleaned   string       // Cleaned stack trace (8 bytes)
+	Removed   int          // Number of repetitive blocks removed (8 bytes)
 }
