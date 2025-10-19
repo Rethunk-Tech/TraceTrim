@@ -51,7 +51,8 @@ func IsStackTrace(content string) bool {
 	return false
 }
 
-// CleanStackTrace removes repetitive blocks from stack traces while preserving essential information
+// CleanStackTrace removes repetitive stack trace blocks while preserving all original formatting.
+// Only redundant stack frames are removed - all other content including indentation and spacing is preserved exactly.
 func CleanStackTrace(content string) string {
 	if !IsStackTrace(content) {
 		return content
@@ -121,7 +122,8 @@ func extractFrameSignature(line string) string {
 	return line // Fallback to entire line if parsing fails
 }
 
-// ExtractErrorInfo extracts structured information from a stack trace
+// ExtractErrorInfo extracts structured information from a stack trace for analysis.
+// This function only parses and analyzes the content - it does not modify the original clipboard content.
 func ExtractErrorInfo(content string) *models.ErrorInfo {
 	if !IsStackTrace(content) {
 		return nil
