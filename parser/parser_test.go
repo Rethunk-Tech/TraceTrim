@@ -11,8 +11,10 @@ func TestIsStackTrace(t *testing.T) {
 		expected bool
 	}{
 		{
-			name:     "React error with repetitive frames",
-			input:    "Error: Something went wrong\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
+			name: "React error with repetitive frames",
+			input: "Error: Something went wrong\n" +
+				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n" +
+				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
 			expected: true,
 		},
 		{
@@ -21,8 +23,10 @@ func TestIsStackTrace(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "Multiple stack frames",
-			input:    "TypeError: Cannot read property 'map' of undefined\n    at Component.render (app.js:15:20)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)",
+			name: "Multiple stack frames",
+			input: "TypeError: Cannot read property 'map' of undefined\n" +
+				"    at Component.render (app.js:15:20)\n" +
+				"    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)",
 			expected: true,
 		},
 		{
@@ -41,13 +45,17 @@ func TestIsStackTrace(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "TypeScript file extension",
-			input:    "Error: Type error\n    at myFunction (app.ts:15:10)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
+			name: "TypeScript file extension",
+			input: "Error: Type error\n" +
+				"    at myFunction (app.ts:15:10)\n" +
+				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
 			expected: true,
 		},
 		{
-			name:     "React JSX file extension",
-			input:    "Error: Component error\n    at MyComponent.render (Component.jsx:25:5)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)",
+			name: "React JSX file extension",
+			input: "Error: Component error\n" +
+				"    at MyComponent.render (Component.jsx:25:5)\n" +
+				"    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)",
 			expected: true,
 		},
 	}
@@ -67,7 +75,8 @@ func runStringTests(t *testing.T, tests []struct {
 	name     string
 	input    string
 	expected string
-}, testFunc func(string) string) {
+}, testFunc func(string) string,
+) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := testFunc(tt.input)
@@ -139,14 +148,19 @@ func TestExtractErrorInfo(t *testing.T) {
 	}{
 		{
 			name:         "React component error",
-			input:        "Error: Objects are not valid as a React child\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)\n    at MyComponent.render (MyComponent.js:25:10)",
+			input:        "Error: Objects are not valid as a React child\n" +
+				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n" +
+				"    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)\n" +
+				"    at MyComponent.render (MyComponent.js:25:10)",
 			expectedMsg:  "Error: Objects are not valid as a React child",
 			expectedSrc:  "MyComponent.js:25",
 			expectedComp: "MyComponent",
 		},
 		{
 			name:         "React component lifecycle method",
-			input:        "Warning: Component did update\n    at MyComponent.componentDidUpdate (MyComponent.js:45:8)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
+			input:        "Warning: Component did update\n" +
+				"    at MyComponent.componentDidUpdate (MyComponent.js:45:8)\n" +
+				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
 			expectedMsg:  "Warning: Component did update",
 			expectedSrc:  "MyComponent.js:45",
 			expectedComp: "MyComponent",
