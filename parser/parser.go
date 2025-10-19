@@ -8,6 +8,19 @@ import (
 	"com.github/rethunk-tech/no-reaction/internal/models"
 )
 
+const (
+	// Minimum stack lines to consider content a stack trace
+	minStackLinesForDetection = 2
+
+	// Pattern matching constants
+	minFunctionPatternMatches = 4
+	minAltPatternMatches      = 4
+	minJSPatternMatches       = 3
+
+	// Estimation constants
+	charsPerStackFrame = 50
+)
+
 // Pre-compiled regex patterns for better performance
 var (
 	// Stack trace detection patterns - enhanced for better edge case handling
@@ -53,7 +66,7 @@ func IsStackTrace(content string) bool {
 		}
 
 		// If we find multiple stack-like lines, it's likely a stack trace
-		if stackLineCount >= 2 {
+		if stackLineCount >= minStackLinesForDetection {
 			return true
 		}
 	}
@@ -129,7 +142,7 @@ func CleanStackTrace(content string) string {
 // This function is now optimized to avoid redundant regex compilation and string processing
 func extractFrameSignature(line string) string {
 	matches := framePattern.FindStringSubmatch(line)
-	if len(matches) >= 4 {
+	if len(matches) >= minFunctionPatternMatches {
 		// Return function + file + line as unique signature (trim "at " prefix if present)
 		functionName := strings.TrimSpace(matches[1])
 		if strings.HasPrefix(functionName, "at ") {
@@ -170,7 +183,7 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 
 		// Extract file and line info for source - prioritize user code over React internals
 		// Try alternative pattern first (more reliable for all file types)
-		if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= 4 {
+		if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= minAltPatternMatches {
 			filename := strings.TrimSpace(altMatches[1])
 
 			// Only set source if this is not React internal code
@@ -183,7 +196,7 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 
 		// Also try primary pattern for .js files (fallback)
 		if source == "" {
-			if jsMatches := sourceFilePattern.FindStringSubmatch(line); len(jsMatches) >= 3 {
+			if jsMatches := sourceFilePattern.FindStringSubmatch(line); len(jsMatches) >= minJSPatternMatches {
 				jsIndex := strings.LastIndex(line, ".js:")
 				if jsIndex != -1 {
 					start := strings.LastIndex(line[:jsIndex], "(")
@@ -224,7 +237,7 @@ func CleanResult(content string) models.CleanResult {
 
 	// Simple heuristic: if cleaned version is shorter, we removed something
 	if len(cleaned) < len(original) {
-		removed = (len(original) - len(cleaned)) / 50 // Rough estimate
+		removed = (len(original) - len(cleaned)) / charsPerStackFrame // Rough estimate
 	}
 
 	var frames []models.StackFrame

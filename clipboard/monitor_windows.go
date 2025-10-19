@@ -56,7 +56,7 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	utf16Ptr := (*uint16)(unsafe.Pointer(lockRet))
 	length := 0
 	for *utf16Ptr != 0 {
-		utf16Ptr = (*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(utf16Ptr)) + 2))
+				utf16Ptr = (*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(utf16Ptr)) + utf16CharSize))
 		length++
 	}
 
@@ -74,8 +74,13 @@ func (w *windowsPlatform) SetContent(content string) error {
 		return fmt.Errorf("failed to convert string to UTF-16: %w", err)
 	}
 
+const (
+	// UTF-16 character size in bytes
+	utf16CharSize = 2
+)
+
 	// Calculate size needed for the memory block
-	size := len(utf16) * 2
+	size := len(utf16) * utf16CharSize
 
 	// Open clipboard
 	ret, _, _ := openClipboard.Call(0)
@@ -94,7 +99,7 @@ func (w *windowsPlatform) SetContent(content string) error {
 	}
 
 	// Allocate global memory
-	hMem, _, _ := globalAlloc.Call(GMEM_MOVEABLE, uintptr(size+2))
+	hMem, _, _ := globalAlloc.Call(GMEM_MOVEABLE, uintptr(size+utf16CharSize))
 	if hMem == 0 {
 		return fmt.Errorf("failed to allocate global memory")
 	}

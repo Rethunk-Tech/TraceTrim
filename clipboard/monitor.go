@@ -47,8 +47,13 @@ func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.Clip
 	}
 	m.lastContent = initialContent
 
+const (
+	// Clipboard polling interval
+	clipboardPollInterval = 500 * time.Millisecond
+)
+
 	// Start monitoring loop
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(clipboardPollInterval)
 	defer ticker.Stop()
 
 	for {
