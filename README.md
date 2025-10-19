@@ -385,3 +385,7 @@ If you find this tool helpful, please consider:
 - 🐛 Reporting bugs or issues
 - 💡 Suggesting improvements
 - 🚀 Contributing code
+
+---
+
+[LICENSE](LICENSE) | Copyright (c) 2025 Rethunk-Tech
