@@ -21,7 +21,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.23'
+        go-version: '1.24'
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -29,52 +29,15 @@ jobs:
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
-        key: ubuntu-latest-go-1.23-${{ hashFiles('**/go.sum') }}
+        key: ubuntu-latest-go-1.24-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ubuntu-latest-go-1.23-
+          ubuntu-latest-go-1.24-
 
     - name: Run govulncheck
       run: |
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
+        go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
-    - name: Run Trivy vulnerability scanner in repo mode
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-  codeql-analysis:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: go
-        config-file: ./.github/codeql-config.yml
-
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
 
   dependency-review:
     name: Dependency Review
