@@ -13,16 +13,16 @@ func IsStackTrace(content string) bool {
 	// Look for common stack trace patterns
 	stackTracePatterns := []string{
 		// JavaScript stack trace patterns
-		`at\s+[\w<>.\s]+\([^)]+\)`,                    // "at functionName (file.js:123:45)"
-		`\w+\.js:\d+:\d+`,                             // "file.js:123:45"
-		`Error:\s+.*\n\s+at\s+`,                       // "Error: message\n    at"
+		`at\s+[\w<>.\s]+\([^)]+\)`, // "at functionName (file.js:123:45)"
+		`\w+\.js:\d+:\d+`,          // "file.js:123:45"
+		`Error:\s+.*\n\s+at\s+`,    // "Error: message\n    at"
 		// React specific patterns
-		`react-dom\.development\.js`,                  // React DOM development file
-		`ReactErrorUtils\.invokeGuardedCallback`,       // Common React error pattern
+		`react-dom\.development\.js`,             // React DOM development file
+		`ReactErrorUtils\.invokeGuardedCallback`, // Common React error pattern
 		// Generic error patterns
-		`Uncaught\s+`,                                 // "Uncaught Error:"
-		`ReferenceError:`,                             // "ReferenceError:"
-		`TypeError:`,                                  // "TypeError:"
+		`Uncaught\s+`,     // "Uncaught Error:"
+		`ReferenceError:`, // "ReferenceError:"
+		`TypeError:`,      // "TypeError:"
 	}
 
 	lines := strings.Split(content, "\n")
