@@ -5,7 +5,7 @@ run:
 
 linters-settings:
   govet:
-    check-shadowing: true
+    enable-all: true
   gocyclo:
     min-complexity: 15
   dupl:
@@ -33,12 +33,10 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - deadcode
-    - depguard
+    - copyloopvar
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
     - funlen
     - gochecknoinits
     - goconst
@@ -46,37 +44,34 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - gomnd
-    - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
+    - mnd
     - nakedret
     - noctx
     - nolintlint
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
+        - mnd
         - funlen
         - goconst
     - path: cmd/
       linters:
-        - gomnd
+        - mnd
   max-issues-per-linter: 0
   max-same-issues: 0
