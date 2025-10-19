@@ -37,7 +37,7 @@ func NewMonitor() (*Monitor, error) {
 }
 
 // StartMonitoring begins monitoring the clipboard for changes
-func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.ClipboardContent)) error {
+func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.ClipboardContent, *Monitor)) error {
 	log.Printf("Starting clipboard monitoring on %s", m.platform.GetName())
 
 	// Get initial content
@@ -74,7 +74,7 @@ func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.Clip
 					Timestamp: time.Now(),
 					Format:    "text/plain",
 				}
-				callback(clipboardContent)
+				callback(clipboardContent, m)
 			}
 		}
 	}

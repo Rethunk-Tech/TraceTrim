@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"com.github/rethunk-tech/no-reaction/clipboard"
@@ -34,8 +33,8 @@ func main() {
 
 	// Start monitoring in a goroutine
 	go func() {
-		err := monitor.StartMonitoring(ctx, func(content models.ClipboardContent) {
-			handleClipboardContent(content)
+		err := monitor.StartMonitoring(ctx, func(content models.ClipboardContent, m *clipboard.Monitor) {
+			handleClipboardContent(content, m)
 		})
 		if err != nil {
 			log.Printf("Monitoring stopped with error: %v", err)
@@ -49,22 +48,22 @@ func main() {
 }
 
 // handleClipboardContent processes clipboard content when it changes
-func handleClipboardContent(content models.ClipboardContent) {
+func handleClipboardContent(content models.ClipboardContent, monitor *clipboard.Monitor) {
 	// Check if this looks like a stack trace
 	if parser.IsStackTrace(content.Content) {
 		fmt.Printf("\n[%s] Detected stack trace, cleaning...\n", content.Timestamp.Format("15:04:05"))
 
-		// Clean the stack trace
-		cleaned := parser.CleanStackTrace(content.Content)
+		// Clean the stack trace and get detailed results
+		cleanResult := parser.CleanResult(content.Content)
 
-		// Update clipboard with cleaned content
-		monitor, err := clipboard.NewMonitor()
-		if err != nil {
-			log.Printf("Failed to create monitor for updating clipboard: %v", err)
+		// Check if content actually changed
+		if cleanResult.Cleaned == content.Content {
+			fmt.Printf("  No changes needed - content is already clean\n")
 			return
 		}
 
-		err = monitor.SetContent(cleaned)
+		// Update clipboard with cleaned content using the existing monitor
+		err := monitor.SetContent(cleanResult.Cleaned)
 		if err != nil {
 			log.Printf("Failed to update clipboard: %v", err)
 			return
@@ -72,13 +71,9 @@ func handleClipboardContent(content models.ClipboardContent) {
 
 		fmt.Printf("✓ Stack trace cleaned and clipboard updated\n")
 
-		// Show a brief preview of what was changed
-		originalLines := strings.Split(content.Content, "\n")
-		cleanedLines := strings.Split(cleaned, "\n")
-
-		if len(cleanedLines) < len(originalLines) {
-			removed := len(originalLines) - len(cleanedLines)
-			fmt.Printf("  Removed %d repetitive lines\n", removed)
+		// Show accurate count of what was removed
+		if cleanResult.Removed > 0 {
+			fmt.Printf("  Removed %d repetitive stack frame(s)\n", cleanResult.Removed)
 		}
 	}
 }
