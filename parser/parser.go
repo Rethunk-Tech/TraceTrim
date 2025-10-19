@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"com.github/rethunk-tech/no-reaction/internal/models"
 )
@@ -55,6 +56,11 @@ var (
 // IsStackTrace determines if the given content contains a JavaScript or React stack trace
 // Optimized to avoid allocations for short content and improve performance
 func IsStackTrace(content string) bool {
+	// Validate input content first
+	if !isValidContent(content) {
+		return false
+	}
+
 	// Early return for obviously non-stack-trace content
 	if len(content) < minStackTraceLength {
 		return false
@@ -85,6 +91,34 @@ func IsStackTrace(content string) bool {
 	return false
 }
 
+// isValidContent validates that the content is safe to process
+func isValidContent(content string) bool {
+	// Check if content is valid UTF-8
+	if !utf8.ValidString(content) {
+		return false
+	}
+
+	// Check for null bytes (potential binary data)
+	if strings.Contains(content, "\x00") {
+		return false
+	}
+
+	// Check content length is reasonable (prevent memory exhaustion)
+	if len(content) > 50*1024*1024 { // 50MB limit
+		return false
+	}
+
+	// Check for extremely long lines that could cause issues
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if len(line) > 10000 { // 10KB per line limit
+			return false
+		}
+	}
+
+	return true
+}
+
 // CleanResultPair contains both the cleaned content and detailed statistics
 type CleanResultPair struct {
 	Content string
@@ -96,6 +130,11 @@ type CleanResultPair struct {
 // Optimized to minimize string allocations and improve performance.
 // Returns both the cleaned content and the exact count of frames removed.
 func CleanStackTrace(content string) CleanResultPair {
+	// Validate content before processing
+	if !isValidContent(content) {
+		return CleanResultPair{Content: content, Removed: 0}
+	}
+
 	if !IsStackTrace(content) {
 		return CleanResultPair{Content: content, Removed: 0}
 	}

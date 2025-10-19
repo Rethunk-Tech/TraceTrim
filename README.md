@@ -195,6 +195,70 @@ ReferenceError: x is not defined
     at eval (eval at <anonymous> (script.js:1:1))
 ```
 
+## Security Considerations
+
+This application handles clipboard content and should be used with appropriate security considerations:
+
+### Security Features
+
+- **Input Validation**: All clipboard content is validated before processing
+  - UTF-8 validation ensures no binary data corruption
+  - Size limits prevent memory exhaustion attacks
+  - Content sanitization removes potentially dangerous patterns
+- **Memory Safety**: Proper memory management prevents leaks and corruption
+- **Platform Isolation**: Each platform implementation is isolated and validated
+- **No Network Access**: Application operates entirely locally with no external connections
+- **Minimal Permissions**: Only requires clipboard access permissions
+
+### Security Best Practices
+
+- **Permission Management**:
+  - Windows: Standard application permissions (no administrator required)
+  - macOS: Requires Accessibility permissions (see troubleshooting section)
+  - Linux: Requires clipboard utility access (xclip/xsel)
+- **Content Safety**:
+  - Application only processes text content, never binary data
+  - Stack trace patterns are strictly validated before processing
+  - No execution of clipboard content or pattern injection
+- **Resource Limits**:
+  - Configurable content size limits (default: 1MB)
+  - Processing timeout limits prevent hanging
+  - Memory usage is bounded and monitored
+
+### Potential Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| **Memory Exhaustion** | High | Content size limits, input validation, bounded processing |
+| **Pattern Injection** | Medium | Strict regex validation, no dynamic pattern execution |
+| **Clipboard Pollution** | Low | Content validation, safe fallback on errors |
+| **Resource Leaks** | Medium | Proper cleanup, defer statements, error handling |
+| **Race Conditions** | Low | Synchronization primitives, atomic operations |
+
+### Threat Model
+
+- **Attack Vectors Considered**:
+  - Malicious clipboard content designed to crash the application
+  - Extremely large content causing memory exhaustion
+  - Invalid UTF-8 sequences causing parsing errors
+  - Rapid clipboard changes causing race conditions
+- **Attack Vectors Not Applicable**:
+  - Network-based attacks (no network access)
+  - File system attacks (no file I/O beyond config)
+  - Privilege escalation (runs with user permissions only)
+  - Code injection (no dynamic code execution)
+
+### Security Updates
+
+The application follows security best practices:
+
+- Regular dependency updates through `go mod tidy`
+- Static analysis with `go vet` to catch potential issues
+- Comprehensive test coverage including edge cases
+- Platform-specific security validations
+
+If you discover any security vulnerabilities, please report them responsibly through the project's issue tracker.
+
 ## Supported File Types
 
 The application supports cleaning stack traces from all modern JavaScript and TypeScript file formats:
@@ -287,7 +351,167 @@ sudo pacman -S xclip
 - ✅ Wayland with XWayland compatibility layer
 - ✅ Remote X11 sessions via SSH with X forwarding
 
-## Troubleshooting
+## Troubleshooting Guide
+
+This section provides comprehensive solutions for common issues you might encounter when using the Clipboard Stack Trace Cleaner.
+
+### Quick Diagnostic Commands
+
+Before diving into specific issues, try these diagnostic commands:
+
+```bash
+# Check if clipboard tools are available (Linux)
+which xclip xsel
+
+# Check X11 display (Linux)
+echo $DISPLAY
+
+# Check Go version compatibility
+go version
+
+# Test basic clipboard functionality
+echo "test content" | xclip -selection clipboard -i  # Linux
+echo "test content" | pbcopy  # macOS
+```
+
+### Common Issues and Solutions
+
+#### 1. Application Won't Start
+
+**Symptoms**: Application fails to start or exits immediately
+**Possible Causes**: Missing dependencies, permission issues, corrupted binary
+
+**Solutions**:
+
+- **Check Go installation**: Ensure Go 1.21+ is installed (`go version`)
+- **Verify binary**: Ensure the binary is not corrupted (`ls -la clipboard-cleaner`)
+- **Check permissions**: Ensure the binary is executable (`chmod +x clipboard-cleaner`)
+- **Platform compatibility**: Ensure you're running on a supported platform (Windows 7+, macOS 10.6+, Linux with X11)
+
+#### 2. Clipboard Access Denied
+
+**Symptoms**: "Failed to initialize clipboard monitor" errors
+**Possible Causes**: Missing permissions, incompatible environment, system restrictions
+
+**Platform-Specific Solutions**:
+
+**Windows**:
+
+- Run as administrator if clipboard access fails
+- Check Windows version (Vista+ required)
+- Verify no other application has exclusive clipboard access
+- Try running from Command Prompt instead of PowerShell
+
+**macOS**:
+
+- Grant Accessibility permissions (see detailed steps in Platform-Specific section)
+- Check System Preferences > Security & Privacy > Privacy > Accessibility
+- Ensure terminal application (Terminal, iTerm, etc.) has permissions
+- Try restarting the application after granting permissions
+
+**Linux**:
+
+- Install clipboard utilities: `sudo apt-get install xclip` (Ubuntu/Debian) or `sudo yum install xsel` (CentOS/RHEL)
+- Verify X11 is running: `echo $DISPLAY` should show a display number
+- Check if in SSH session without X forwarding: use `ssh -X` for X11 forwarding
+
+#### 3. Stack Traces Not Being Cleaned
+
+**Symptoms**: Stack traces appear in clipboard but are not processed
+**Possible Causes**: Detection issues, content format problems, configuration issues
+
+**Solutions**:
+
+- **Verify content format**: Ensure the clipboard contains actual JavaScript/React stack traces
+- **Check content size**: Very large stack traces (>1MB) are skipped by default
+- **Adjust detection sensitivity**: Use `--parser-min-stack-lines` flag to lower detection threshold
+- **Enable verbose mode**: Use `--verbose` flag to see detailed processing information
+- **Check for false negatives**: Some minified or non-standard stack trace formats may not be detected
+
+#### 4. High CPU Usage
+
+**Symptoms**: Application consumes excessive CPU resources
+**Possible Causes**: Very frequent clipboard polling, large content processing
+
+**Solutions**:
+
+- **Increase polling interval**: Use `--clipboard-polling-interval 1000ms` (default: 500ms)
+- **Check for clipboard spam**: Rapid clipboard changes can cause high CPU usage
+- **Monitor resource usage**: Use system tools to identify the cause
+
+#### 5. Memory Issues
+
+**Symptoms**: Application crashes or uses excessive memory
+**Possible Causes**: Large clipboard content, memory leaks, system resource constraints
+
+**Solutions**:
+
+- **Configure content limits**: Use `--clipboard-max-content-size 1048576` (1MB limit)
+- **Check system resources**: Ensure adequate free memory (at least 50MB recommended)
+- **Monitor for memory leaks**: Use system tools to check application memory usage
+
+#### 6. Cross-Platform Issues
+
+**Symptoms**: Application works on one platform but not others
+**Possible Causes**: Platform-specific dependencies, compilation issues, environment differences
+
+**Solutions**:
+
+- **Verify platform support**: Check you're using a supported OS/architecture combination
+- **Check compilation**: Ensure binary was compiled for the correct platform
+- **Environment variables**: Check for platform-specific environment requirements
+- **Dependencies**: Verify all platform-specific dependencies are installed
+
+#### 7. Configuration Issues
+
+**Symptoms**: Settings not taking effect, configuration file errors
+**Possible Causes**: Invalid configuration file, permission issues, syntax errors
+
+**Solutions**:
+
+- **Validate config file**: Check `config.yaml` for syntax errors
+- **Check file permissions**: Ensure config file is readable
+- **Reset configuration**: Delete `config.yaml` to use defaults
+- **Command line override**: Use command line flags to override config file settings
+
+### Getting Help
+
+If you encounter issues not covered in this guide:
+
+1. **Check the logs**: Run with `--verbose` flag for detailed information
+2. **Review recent changes**: Check if issues started after system/application updates
+3. **Test with simple content**: Try copying simple text to verify basic clipboard functionality
+4. **Check system requirements**: Verify your system meets minimum requirements
+5. **Report issues**: Use the project's issue tracker with detailed information including:
+   - Platform and version
+   - Go version
+   - Error messages
+   - Steps to reproduce
+   - Relevant system information
+
+### Advanced Debugging
+
+For advanced users experiencing persistent issues:
+
+```bash
+# Enable verbose logging
+./clipboard-cleaner --verbose
+
+# Test clipboard access directly
+./clipboard-cleaner --clipboard-polling-interval 2000ms
+
+# Check system clipboard status
+# Windows: Use ClipBook Viewer or PowerShell Get-Clipboard
+# macOS: Use pbpaste
+# Linux: Use xclip -o or xsel -ob
+
+# Monitor application with system tools
+# Windows: Task Manager, Resource Monitor
+# macOS: Activity Monitor, Console.app
+# Linux: top, htop, journalctl
+```
+
+## Platform-Specific Implementation Details
 
 ### Clipboard Access Issues
 
@@ -301,9 +525,20 @@ sudo pacman -S xclip
 **macOS:**
 
 - **Accessibility Permissions**: Grant permissions in System Preferences > Security & Privacy > Accessibility
+  - Go to System Preferences > Security & Privacy > Privacy tab
+  - Select "Accessibility" from the left sidebar
+  - Click the lock icon to make changes (you may need to enter your password)
+  - Find and check the box next to your terminal application (Terminal, iTerm, etc.) or the clipboard-cleaner executable
+  - If the application doesn't appear in the list, try adding it manually by clicking the "+" button
 - **First Run Prompt**: The application may prompt for permissions on first launch
 - **System Integrity Protection**: Ensure SIP doesn't interfere with clipboard access
+  - SIP should not normally interfere with clipboard access, but if you encounter issues, check that the application is properly signed
 - **Error Messages**: Look for cgo/Objective-C bridge errors in console output
+- **Troubleshooting Steps**:
+  1. Ensure the application has Accessibility permissions as described above
+  2. Try running the application from a terminal that has proper permissions
+  3. If using a bundled application, ensure it's properly signed with codesign
+  4. Check Console.app for any related error messages
 
 **Linux:**
 

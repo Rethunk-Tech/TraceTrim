@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -181,20 +182,45 @@ func BindFlags() error {
 
 // ValidateConfig validates the configuration
 func ValidateConfig(config *Config) error {
+	// Validate clipboard configuration
 	if config.Clipboard.PollingInterval < 50*time.Millisecond {
 		return fmt.Errorf("clipboard polling interval must be at least 50ms")
+	}
+	if config.Clipboard.PollingInterval > 10*time.Second {
+		return fmt.Errorf("clipboard polling interval must be at most 10 seconds")
 	}
 
 	if config.Clipboard.MaxContentSize < 1024 {
 		return fmt.Errorf("clipboard max content size must be at least 1KB")
 	}
+	if config.Clipboard.MaxContentSize > 50*1024*1024 {
+		return fmt.Errorf("clipboard max content size must be at most 50MB")
+	}
 
+	// Validate parser configuration
 	if config.Parser.MinStackLinesForDetection < 1 {
 		return fmt.Errorf("parser min stack lines must be at least 1")
+	}
+	if config.Parser.MinStackLinesForDetection > 100 {
+		return fmt.Errorf("parser min stack lines must be at most 100")
 	}
 
 	if config.Parser.MinStackTraceLength < 10 {
 		return fmt.Errorf("parser min stack trace length must be at least 10")
+	}
+	if config.Parser.MinStackTraceLength > 10000 {
+		return fmt.Errorf("parser min stack trace length must be at most 10000")
+	}
+
+	// Validate custom patterns if provided
+	for i, pattern := range config.Parser.CustomPatterns {
+		if pattern == "" {
+			return fmt.Errorf("custom pattern at index %d cannot be empty", i)
+		}
+		// Validate that pattern is a valid regex by attempting to compile it
+		if _, err := regexp.Compile(pattern); err != nil {
+			return fmt.Errorf("custom pattern at index %d is not a valid regex: %w", i, err)
+		}
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"com.github/rethunk-tech/no-reaction/internal/models"
@@ -19,6 +20,7 @@ type Monitor struct {
 	platform    Platform
 	stopChan    chan struct{}
 	lastContent string
+	mutex       sync.RWMutex // Protects lastContent
 }
 
 // Platform interface abstracts platform-specific clipboard operations
@@ -55,7 +57,9 @@ func (m *Monitor) StartMonitoringWithInterval(ctx context.Context, interval time
 	if err != nil {
 		return fmt.Errorf("failed to get initial clipboard content: %w", err)
 	}
+	m.mutex.Lock()
 	m.lastContent = initialContent
+	m.mutex.Unlock()
 
 	// Start monitoring loop
 	ticker := time.NewTicker(interval)
@@ -76,9 +80,15 @@ func (m *Monitor) StartMonitoringWithInterval(ctx context.Context, interval time
 				continue
 			}
 
-			// Check if content has changed
-			if content != m.lastContent && content != "" {
+			// Check if content has changed (with proper locking)
+			m.mutex.Lock()
+			contentChanged := content != m.lastContent && content != ""
+			if contentChanged {
 				m.lastContent = content
+			}
+			m.mutex.Unlock()
+
+			if contentChanged {
 				clipboardContent := models.ClipboardContent{
 					Content:   content,
 					Timestamp: time.Now(),

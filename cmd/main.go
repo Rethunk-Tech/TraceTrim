@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"com.github/rethunk-tech/no-reaction/clipboard"
 	"com.github/rethunk-tech/no-reaction/internal/config"
@@ -58,7 +59,13 @@ func main() {
 	// Create clipboard monitor
 	monitor, err := clipboard.NewMonitor()
 	if err != nil {
-		log.Fatalf("Failed to initialize clipboard monitor: %v", err)
+		fmt.Fprintf(os.Stderr, "Error: Failed to initialize clipboard monitor: %v\n", err)
+		fmt.Fprintf(os.Stderr, "This may be due to:\n")
+		fmt.Fprintf(os.Stderr, "  - Insufficient permissions to access clipboard\n")
+		fmt.Fprintf(os.Stderr, "  - Platform-specific requirements not met\n")
+		fmt.Fprintf(os.Stderr, "  - Missing system dependencies\n")
+		fmt.Fprintf(os.Stderr, "\nPlease check the troubleshooting section in the README.\n")
+		os.Exit(1)
 	}
 
 	// Set up signal handling for graceful shutdown
@@ -75,7 +82,16 @@ func main() {
 		}
 		err := monitor.StartMonitoringWithInterval(ctx, cfg.Clipboard.PollingInterval, callback)
 		if err != nil {
-			log.Printf("Monitoring stopped with error: %v", err)
+			fmt.Fprintf(os.Stderr, "Error: Clipboard monitoring stopped: %v\n", err)
+			// Try to restart monitoring after a delay
+			time.Sleep(5 * time.Second)
+			fmt.Fprintf(os.Stderr, "Info: Attempting to restart clipboard monitoring...\n")
+			go func() {
+				restartErr := monitor.StartMonitoringWithInterval(ctx, cfg.Clipboard.PollingInterval, callback)
+				if restartErr != nil {
+					fmt.Fprintf(os.Stderr, "Error: Failed to restart monitoring: %v\n", restartErr)
+				}
+			}()
 		}
 	}()
 
@@ -136,6 +152,10 @@ func handleClipboardContent(content models.ClipboardContent, monitor *clipboard.
 
 	// Check if this looks like a stack trace
 	if !parser.IsStackTrace(content.Content) {
+		if cfg.Output.Verbose {
+			timestamp := getTimestamp(content, cfg)
+			fmt.Printf("%sSkipping non-stack-trace content\n", timestamp)
+		}
 		return
 	}
 
@@ -163,7 +183,9 @@ func processStackTrace(content models.ClipboardContent, monitor *clipboard.Monit
 
 	// Update clipboard with cleaned content
 	if err := updateClipboard(monitor, &cleanResult); err != nil {
-		log.Printf("Failed to update clipboard: %v", err)
+		timestamp := getTimestamp(content, cfg)
+		fmt.Fprintf(os.Stderr, "%sError: Failed to update clipboard: %v\n", timestamp, err)
+		fmt.Fprintf(os.Stderr, "%sThe cleaned content could not be written back to clipboard\n", timestamp)
 		return
 	}
 

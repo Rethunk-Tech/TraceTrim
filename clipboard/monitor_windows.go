@@ -49,20 +49,33 @@ func (w *windowsPlatform) GetContent() (string, error) {
 	if lockRet == 0 {
 		return "", fmt.Errorf("failed to lock Windows clipboard memory object")
 	}
+
+	// Ensure memory is always unlocked when we're done
 	defer func() {
-		globalUnlock.Call(hMem) //nolint:errcheck // Ignore errors in defer
+		if lockRet != 0 {
+			globalUnlock.Call(hMem) //nolint:errcheck // Ignore errors in defer
+		}
 	}()
 
-	// Convert UTF-16 bytes to Go string
-	utf16Ptr := (*uint16)(unsafe.Pointer(lockRet))
-	length := 0
-	for *utf16Ptr != 0 {
-		utf16Ptr = (*uint16)(unsafe.Pointer(uintptr(unsafe.Pointer(utf16Ptr)) + utf16CharSize))
-		length++
+	// Get the size of the clipboard data
+	size, _, _ := globalSize.Call(hMem)
+	if size == 0 {
+		return "", fmt.Errorf("failed to get clipboard data size")
 	}
 
-	utf16Ptr = (*uint16)(unsafe.Pointer(lockRet))
-	goStr := syscall.UTF16ToString((*[1 << 20]uint16)(unsafe.Pointer(utf16Ptr))[:length:length])
+	// Calculate the length in uint16 units (size includes null terminator)
+	length := int(size) / int(utf16CharSize)
+
+	// Copy data to a buffer using Windows API pattern
+	utf16Slice := make([]uint16, length)
+	srcPtr := uintptr(lockRet)
+	dstPtr := uintptr(unsafe.Pointer(&utf16Slice[0]))
+
+	// Use Windows memory copy function for safety
+	kernel32.NewProc("RtlMoveMemory").Call(dstPtr, srcPtr, size)
+
+	// Convert to Go string
+	goStr := syscall.UTF16ToString(utf16Slice)
 
 	return goStr, nil
 }
@@ -105,10 +118,12 @@ func (w *windowsPlatform) SetContent(content string) error {
 		return fmt.Errorf("failed to lock Windows clipboard memory object")
 	}
 
-	// Copy UTF-16 data
-	dest := (*[1 << 20]uint16)(unsafe.Pointer(lockRet))
-	destSlice := dest[:len(utf16):len(utf16)]
-	copy(destSlice, utf16)
+	// Copy UTF-16 data using Windows API pattern
+	srcPtr := uintptr(unsafe.Pointer(&utf16[0]))
+	dstPtr := uintptr(lockRet)
+
+	// Use Windows memory copy function for safety
+	kernel32.NewProc("RtlMoveMemory").Call(dstPtr, srcPtr, uintptr(size))
 
 	// Unlock memory
 	if _, _, err := globalUnlock.Call(hMem); err != nil {
@@ -116,12 +131,15 @@ func (w *windowsPlatform) SetContent(content string) error {
 		return fmt.Errorf("failed to unlock Windows clipboard memory object: %v", err)
 	}
 
-	// Set clipboard data
+	// Set clipboard data (Windows will own the memory after this call)
 	setClipboardDataRet, _, _ := setClipboardData.Call(cfUnicodeText, hMem)
 	if setClipboardDataRet == 0 {
+		// If SetClipboardData fails, we need to free the memory since Windows doesn't own it
 		globalFree.Call(hMem) //nolint:errcheck // Ignore errors in cleanup
 		return fmt.Errorf("failed to set Unicode text data in Windows clipboard")
 	}
+
+	// Memory is now owned by Windows clipboard - don't free it
 
 	return nil
 }
@@ -140,6 +158,7 @@ var (
 	globalFree       = kernel32.NewProc("GlobalFree")
 	globalLock       = kernel32.NewProc("GlobalLock")
 	globalUnlock     = kernel32.NewProc("GlobalUnlock")
+	globalSize       = kernel32.NewProc("GlobalSize")
 )
 
 const (
