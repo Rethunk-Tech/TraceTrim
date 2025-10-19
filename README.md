@@ -131,6 +131,7 @@ Press `Ctrl+C` to gracefully stop the clipboard monitoring.
 TraceTrim can be used in scripts in two ways:
 
 #### Automatic Detection (Recommended)
+
 TraceTrim automatically detects when it's being used in a non-interactive environment (scripts, pipes, redirection) and switches to script mode automatically:
 
 ```bash
@@ -147,6 +148,7 @@ find . -name "*.log" -exec grep -l "Error:" {} \; | xargs cat | ./tracetrim
 ```
 
 #### Manual Script Mode
+
 You can also explicitly enable script mode with the `--script-mode` flag:
 
 ```bash
@@ -155,6 +157,7 @@ cat stack_trace.txt | ./tracetrim --script-mode > cleaned_stack_trace.txt
 ```
 
 **Script Mode Features:**
+
 - **Automatic Detection**: Detects pipes, redirection, and CI environments
 - Reads stack traces from STDIN
 - Outputs cleaned content to STDOUT
@@ -163,6 +166,7 @@ cat stack_trace.txt | ./tracetrim --script-mode > cleaned_stack_trace.txt
 - Compatible with shell pipelines and automation scripts
 
 **Configuration:**
+
 - `--auto-detect-script-mode=true`: Enable automatic detection (default)
 - `--auto-detect-script-mode=false`: Disable automatic detection
 - `--script-mode`: Manually enable script mode (overrides auto-detection)
