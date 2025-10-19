@@ -8,23 +8,34 @@ import (
 	"com.github/rethunk-tech/no-reaction/internal/models"
 )
 
-// IsStackTrace determines if the given content contains a JavaScript or React stack trace
-func IsStackTrace(content string) bool {
-	// Look for common stack trace patterns
-	stackTracePatterns := []string{
-		// JavaScript stack trace patterns
-		`at\s+[\w<>.\s]+\([^)]+\)`, // "at functionName (file.js:123:45)"
-		`\w+\.js:\d+:\d+`,          // "file.js:123:45"
-		`Error:\s+.*\n\s+at\s+`,    // "Error: message\n    at"
-		// React specific patterns
-		`react-dom\.development\.js`,             // React DOM development file
-		`ReactErrorUtils\.invokeGuardedCallback`, // Common React error pattern
-		// Generic error patterns
-		`Uncaught\s+`,     // "Uncaught Error:"
-		`ReferenceError:`, // "ReferenceError:"
-		`TypeError:`,      // "TypeError:"
+// Pre-compiled regex patterns for better performance
+var (
+	// Stack trace detection patterns - enhanced for better edge case handling
+	stackTracePatterns = []*regexp.Regexp{
+		// JavaScript stack trace patterns - more precise to avoid false matches
+		regexp.MustCompile(`\bat\s+[\w<>.()\s]+\s*\([^)]+\)`),          // "at functionName (file.js:123:45)" - allow more chars in function names
+		regexp.MustCompile(`\b\w+\.(js|ts|jsx|tsx|mjs):\d+:\d+\b`),     // Support more file extensions
+		regexp.MustCompile(`(?m)^Error:\s+.*\n\s+at\s+`),               // "Error: message\n    at" - multiline
+		regexp.MustCompile(`\breact-dom\.development\.js`),             // React DOM development file
+		regexp.MustCompile(`\bReactErrorUtils\.invokeGuardedCallback`), // Common React error pattern
+		regexp.MustCompile(`\bUncaught\s+`),                            // "Uncaught Error:"
+		regexp.MustCompile(`\bReferenceError:`),                        // "ReferenceError:"
+		regexp.MustCompile(`\bTypeError:`),                             // "TypeError:"
+		regexp.MustCompile(`\bSyntaxError:`),                           // "SyntaxError:"
+		regexp.MustCompile(`\bEvalError:`),                             // "EvalError:"
 	}
 
+	// Frame parsing patterns - enhanced for better edge case handling
+	framePattern      = regexp.MustCompile(`(.+?)\s*\(([^:()]+):(\d+):(\d+)\)`)
+	sourceFilePattern = regexp.MustCompile(`\.(js|ts|jsx|tsx|mjs):(\d+):(\d+)`)
+	// Enhanced component patterns for React lifecycle methods
+	componentPattern = regexp.MustCompile(`(\w+)\.(render|componentDidMount|componentDidUpdate|componentWillUnmount)\s*\(`)
+	// Additional pattern for source file extraction with better path handling
+	sourceFileAltPattern = regexp.MustCompile(`\(([^:()]+):(\d+):(\d+)\)`)
+)
+
+// IsStackTrace determines if the given content contains a JavaScript or React stack trace
+func IsStackTrace(content string) bool {
 	lines := strings.Split(content, "\n")
 	stackLineCount := 0
 
@@ -35,8 +46,7 @@ func IsStackTrace(content string) bool {
 
 		// Check if this line matches any stack trace pattern
 		for _, pattern := range stackTracePatterns {
-			matched, _ := regexp.MatchString(pattern, line)
-			if matched {
+			if pattern.MatchString(line) {
 				stackLineCount++
 				break
 			}
@@ -73,10 +83,7 @@ func CleanStackTrace(content string) string {
 		}
 
 		// Check if this is a stack frame line (contains file:line:column pattern)
-		framePattern := `(.+?)\s*\(([^:]+):(\d+):(\d+)\)`
-		frameRegex := regexp.MustCompile(framePattern)
-
-		if frameRegex.MatchString(line) {
+		if framePattern.MatchString(line) {
 			// Extract the frame signature (function + file + line)
 			frameSignature := extractFrameSignature(line)
 
@@ -93,23 +100,35 @@ func CleanStackTrace(content string) string {
 		}
 	}
 
-	result := strings.Join(cleanedLines, "\n")
+	// Use strings.Builder for efficient string concatenation
+	var builder strings.Builder
+
+	// Join cleaned lines
+	for i, line := range cleanedLines {
+		if i > 0 {
+			builder.WriteString("\n")
+		}
+		builder.WriteString(line)
+	}
+
+	result := builder.String()
 
 	// If we removed duplicates, add a note about it
 	if consecutiveDuplicates > 0 {
-		result = fmt.Sprintf("// Removed %d repetitive stack frame(s)\n%s", consecutiveDuplicates, result)
+		// Reset builder and rebuild with the note
+		builder.Reset()
+		builder.WriteString(fmt.Sprintf("// Removed %d repetitive stack frame(s)\n", consecutiveDuplicates))
+		builder.WriteString(result)
+		result = builder.String()
 	}
 
 	return result
 }
 
 // extractFrameSignature creates a unique signature for a stack frame to detect duplicates
+// This function is now optimized to avoid redundant regex compilation and string processing
 func extractFrameSignature(line string) string {
-	// Extract function name, file, and line number
-	framePattern := `(.+?)\s*\(([^:]+):(\d+):(\d+)\)`
-	frameRegex := regexp.MustCompile(framePattern)
-
-	matches := frameRegex.FindStringSubmatch(line)
+	matches := framePattern.FindStringSubmatch(line)
 	if len(matches) >= 4 {
 		// Return function + file + line as unique signature (trim "at " prefix if present)
 		functionName := strings.TrimSpace(matches[1])
@@ -149,28 +168,40 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 			continue
 		}
 
-		// Extract file and line info for source - look for patterns like "at function (file.js:123:45)"
-		// Look for .js:line:column pattern (most common case)
-		jsFilePattern := `\.js:(\d+):(\d+)`
-		jsFileRegex := regexp.MustCompile(jsFilePattern)
+		// Extract file and line info for source - prioritize user code over React internals
+		// Try alternative pattern first (more reliable for all file types)
+		if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= 4 {
+			filename := strings.TrimSpace(altMatches[1])
 
-		if jsMatches := jsFileRegex.FindStringSubmatch(line); len(jsMatches) >= 3 {
-			// Extract the filename by looking backwards from the .js match
-			jsIndex := strings.LastIndex(line, ".js:")
-			if jsIndex != -1 {
-				start := strings.LastIndex(line[:jsIndex], "(")
-				if start != -1 {
-					filename := line[start+1 : jsIndex+3] // Include .js
-					source = fmt.Sprintf("%s:%s", strings.TrimSpace(filename), jsMatches[1])
+			// Only set source if this is not React internal code
+			if !strings.Contains(filename, "react-dom") &&
+				!strings.Contains(filename, "ReactErrorUtils") {
+				lineNum := altMatches[2]
+				source = fmt.Sprintf("%s:%s", filename, lineNum)
+			}
+		}
+
+		// Also try primary pattern for .js files (fallback)
+		if source == "" {
+			if jsMatches := sourceFilePattern.FindStringSubmatch(line); len(jsMatches) >= 3 {
+				jsIndex := strings.LastIndex(line, ".js:")
+				if jsIndex != -1 {
+					start := strings.LastIndex(line[:jsIndex], "(")
+					if start != -1 {
+						filename := line[start+1 : jsIndex+3] // Include .js
+
+						// Only set if not React internal code
+						if !strings.Contains(filename, "react-dom") &&
+							!strings.Contains(filename, "ReactErrorUtils") {
+							source = fmt.Sprintf("%s:%s", strings.TrimSpace(filename), jsMatches[1])
+						}
+					}
 				}
 			}
 		}
 
-		// Look for React component names - look for patterns like "ComponentName.render"
-		componentPattern := `(\w+)\.render\s*\(`
-		componentRegex := regexp.MustCompile(componentPattern)
-
-		if matches := componentRegex.FindStringSubmatch(line); len(matches) >= 2 {
+		// Look for React component names using enhanced pattern (includes lifecycle methods)
+		if matches := componentPattern.FindStringSubmatch(line); len(matches) >= 2 {
 			component = matches[1]
 		}
 

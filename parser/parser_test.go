@@ -40,6 +40,16 @@ func TestIsStackTrace(t *testing.T) {
 			input:    "    at someFunction (file.js:123:45)",
 			expected: false,
 		},
+		{
+			name:     "TypeScript file extension",
+			input:    "Error: Type error\n    at myFunction (app.ts:15:10)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
+			expected: true,
+		},
+		{
+			name:     "React JSX file extension",
+			input:    "Error: Component error\n    at MyComponent.render (Component.jsx:25:5)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)",
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -123,6 +133,13 @@ func TestExtractErrorInfo(t *testing.T) {
 			input:       "Error: Objects are not valid as a React child\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)\n    at MyComponent.render (MyComponent.js:25:10)",
 			expectedMsg: "Error: Objects are not valid as a React child",
 			expectedSrc: "MyComponent.js:25",
+			expectedComp: "MyComponent",
+		},
+		{
+			name:        "React component lifecycle method",
+			input:       "Warning: Component did update\n    at MyComponent.componentDidUpdate (MyComponent.js:45:8)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
+			expectedMsg: "Warning: Component did update",
+			expectedSrc: "MyComponent.js:45",
 			expectedComp: "MyComponent",
 		},
 		{
