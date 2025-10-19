@@ -20,11 +20,14 @@ const (
 	minComponentPatternMatches = 2
 
 	// Estimation constants
-	charsPerStackFrame = 50
 
 	// Performance optimization constants
 	minStackTraceLength = 20
-	commentBufferExtra  = 50
+	maxLineLength       = 10000 // 10KB per line limit
+
+	// Pattern matching constants
+	minReactPatternMatches  = 4
+	minSourcePatternMatches = 3
 )
 
 // Pre-compiled regex patterns for better performance
@@ -118,7 +121,7 @@ func isValidContent(content string) bool {
 	// Check for extremely long lines that could cause issues
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
-		if len(line) > 10000 { // 10KB per line limit
+		if len(line) > maxLineLength {
 			return false
 		}
 	}
@@ -133,6 +136,139 @@ type CleanResultPair struct {
 }
 
 // CleanStackTrace removes repetitive stack trace blocks while preserving all original formatting.
+// isStackFrameLine checks if a line contains a stack frame pattern
+func isStackFrameLine(line string) bool {
+	return framePattern.MatchString(line) || reactFramePattern.MatchString(line)
+}
+
+// countFrameOccurrences counts how many times each frame signature appears
+func countFrameOccurrences(lines []string) map[string]int {
+	frameCounts := make(map[string]int)
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || !isStackFrameLine(line) {
+			continue
+		}
+		frameSignature := extractFrameSignature(line)
+		frameCounts[frameSignature]++
+	}
+	return frameCounts
+}
+
+// buildCleanedLines creates cleaned lines, removing duplicate frames
+func buildCleanedLines(lines []string) (cleanedLines []string, framesCollapsed int) {
+	seenFrames := make(map[string]bool)
+
+	for _, line := range lines {
+		originalLine := line
+		line = strings.TrimSpace(line)
+
+		if line == "" {
+			// Preserve empty lines
+			cleanedLines = append(cleanedLines, originalLine)
+			continue
+		}
+
+		if !isStackFrameLine(line) {
+			// Non-frame lines are preserved as-is
+			cleanedLines = append(cleanedLines, originalLine)
+			continue
+		}
+
+		frameSignature := extractFrameSignature(line)
+
+		if seenFrames[frameSignature] {
+			// This is a duplicate frame - skip it
+			framesCollapsed++
+			continue
+		}
+
+		// First occurrence of this frame - mark as seen and add normally
+		seenFrames[frameSignature] = true
+		cleanedLines = append(cleanedLines, originalLine)
+	}
+
+	return cleanedLines, framesCollapsed
+}
+
+// annotateDuplicateFrames adds annotations to frames that had duplicates
+func annotateDuplicateFrames(cleanedLines []string, frameCounts map[string]int) {
+	for i, line := range cleanedLines {
+		lineTrimmed := strings.TrimSpace(line)
+		if lineTrimmed == "" {
+			continue
+		}
+
+		if isStackFrameLine(lineTrimmed) {
+			frameSignature := extractFrameSignature(lineTrimmed)
+			if count := frameCounts[frameSignature]; count > 1 {
+				// This frame has duplicates - annotate it
+				collapsedLine := fmt.Sprintf("%s // [x%d]", line, count)
+				cleanedLines[i] = collapsedLine
+			}
+		}
+	}
+}
+
+// extractErrorMessage extracts the error message from the first line of stack trace
+func extractErrorMessage(lines []string) string {
+	if len(lines) > 0 {
+		return strings.TrimSpace(lines[0])
+	}
+	return ""
+}
+
+// shouldIncludeSource checks if a source file should be included (not React internal)
+func shouldIncludeSource(filename string) bool {
+	return !strings.Contains(filename, "react-dom") &&
+		!strings.Contains(filename, "ReactErrorUtils")
+}
+
+// extractSourceInfo attempts to extract source file and line information from a stack frame line
+func extractSourceInfo(line string) string {
+	// Try React console format first: "functionName @ file.js:123"
+	if reactMatches := sourceFileReactPattern.FindStringSubmatch(line); len(reactMatches) >= minSourcePatternMatches {
+		filename := strings.TrimSpace(reactMatches[1])
+		if shouldIncludeSource(filename) {
+			lineNum := reactMatches[2]
+			return fmt.Sprintf("%s:%s", filename, lineNum)
+		}
+	}
+
+	// Try alternative format
+	if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= minAltPatternMatches {
+		filename := strings.TrimSpace(altMatches[1])
+		if shouldIncludeSource(filename) {
+			lineNum := altMatches[2]
+			return fmt.Sprintf("%s:%s", filename, lineNum)
+		}
+	}
+
+	// Try primary pattern for .js files (fallback)
+	if jsMatches := sourceFilePattern.FindStringSubmatch(line); len(jsMatches) >= minJSPatternMatches {
+		jsIndex := strings.LastIndex(line, ".js:")
+		if jsIndex != -1 {
+			start := strings.LastIndex(line[:jsIndex], "(")
+			if start != -1 {
+				filename := line[start+1 : jsIndex+3] // Include .js
+				if shouldIncludeSource(filename) {
+					return fmt.Sprintf("%s:%s", strings.TrimSpace(filename), jsMatches[1])
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+// extractComponentInfo attempts to extract React component information from a stack frame line
+func extractComponentInfo(line string) string {
+	if matches := componentPattern.FindStringSubmatch(line); len(matches) >= minComponentPatternMatches {
+		return matches[1]
+	}
+	return ""
+}
+
 // Only redundant stack frames are collapsed in-place - all other content including indentation and spacing is preserved exactly.
 // Optimized to minimize string allocations and improve performance.
 // Returns both the cleaned content and the exact count of frames collapsed.
@@ -147,75 +283,12 @@ func CleanStackTrace(content string) CleanResultPair {
 	}
 
 	lines := strings.Split(content, "\n")
-	frameCounts := make(map[string]int)
-
-	// First pass: count occurrences of each frame
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// Check if this is a stack frame line (contains file:line:column pattern or React console format)
-		if framePattern.MatchString(line) || reactFramePattern.MatchString(line) {
-			frameSignature := extractFrameSignature(line)
-			frameCounts[frameSignature]++
-		}
-	}
-
-	// Second pass: build cleaned lines, keeping only first occurrence of each frame
-	var cleanedLines []string
-	var framesCollapsed int
-	seenFrames := make(map[string]bool)
-
-	for _, line := range lines {
-		originalLine := line
-		line = strings.TrimSpace(line)
-		if line == "" {
-			// Preserve empty lines
-			cleanedLines = append(cleanedLines, originalLine)
-			continue
-		}
-
-		// Check if this is a stack frame line (contains file:line:column pattern or React console format)
-		if framePattern.MatchString(line) || reactFramePattern.MatchString(line) {
-			frameSignature := extractFrameSignature(line)
-
-			if seenFrames[frameSignature] {
-				// This is a duplicate frame - skip it
-				framesCollapsed++
-				continue
-			} else {
-				// First occurrence of this frame - mark as seen and add normally
-				seenFrames[frameSignature] = true
-				cleanedLines = append(cleanedLines, originalLine)
-			}
-		} else {
-			// Non-frame line (error message, etc.) - always include
-			cleanedLines = append(cleanedLines, originalLine)
-		}
-	}
-
-	// Third pass: annotate the kept frames that have duplicates
-	for i, line := range cleanedLines {
-		lineTrimmed := strings.TrimSpace(line)
-		if lineTrimmed == "" {
-			continue
-		}
-
-		if framePattern.MatchString(lineTrimmed) || reactFramePattern.MatchString(lineTrimmed) {
-			frameSignature := extractFrameSignature(lineTrimmed)
-			if count := frameCounts[frameSignature]; count > 1 {
-				// This frame has duplicates - annotate it
-				collapsedLine := fmt.Sprintf("%s // [x%d]", line, count)
-				cleanedLines[i] = collapsedLine
-			}
-		}
-	}
+	frameCounts := countFrameOccurrences(lines)
+	cleanedLines, framesCollapsed := buildCleanedLines(lines)
+	annotateDuplicateFrames(cleanedLines, frameCounts)
 
 	// Use strings.Builder for efficient string concatenation
-	// Pre-calculate approximate size to minimize reallocations
-	estimatedSize := len(content) // Start with original size
+	estimatedSize := len(content)
 	var builder strings.Builder
 	builder.Grow(estimatedSize)
 
@@ -228,11 +301,7 @@ func CleanStackTrace(content string) CleanResultPair {
 	}
 
 	result := builder.String()
-
-	return CleanResultPair{
-		Content: result,
-		Removed: framesCollapsed,
-	}
+	return CleanResultPair{Content: result, Removed: framesCollapsed}
 }
 
 // extractFrameSignature creates a unique signature for a stack frame to detect duplicates
@@ -249,7 +318,7 @@ func extractFrameSignature(line string) string {
 
 	// Try React console format: "functionName @ file.js:123"
 	reactMatches := reactFramePattern.FindStringSubmatch(line)
-	if len(reactMatches) >= 4 {
+	if len(reactMatches) >= minReactPatternMatches {
 		functionName := strings.TrimSpace(reactMatches[1])
 		fileName := reactMatches[2]
 		lineNumber := reactMatches[3]
@@ -314,16 +383,10 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 	}
 
 	lines := strings.Split(content, "\n")
-	var message string
+	message := extractErrorMessage(lines)
 	var stackFrames []string
 	var source string
 	var component string
-
-	// Extract error message (usually the first line)
-	if len(lines) > 0 {
-		firstLine := strings.TrimSpace(lines[0])
-		message = firstLine
-	}
 
 	// Extract stack frames and look for React component info
 	for _, line := range lines {
@@ -333,50 +396,14 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 			continue
 		}
 
-		// Extract file and line info for source - prioritize user code over React internals
-		// Try React console format first: "functionName @ file.js:123"
-		if reactMatches := sourceFileReactPattern.FindStringSubmatch(line); len(reactMatches) >= 3 {
-			filename := strings.TrimSpace(reactMatches[1])
-
-			// Only set source if this is not React internal code
-			if !strings.Contains(filename, "react-dom") &&
-				!strings.Contains(filename, "ReactErrorUtils") {
-				lineNum := reactMatches[2]
-				source = fmt.Sprintf("%s:%s", filename, lineNum)
-			}
-		} else if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= minAltPatternMatches {
-			filename := strings.TrimSpace(altMatches[1])
-
-			// Only set source if this is not React internal code
-			if !strings.Contains(filename, "react-dom") &&
-				!strings.Contains(filename, "ReactErrorUtils") {
-				lineNum := altMatches[2]
-				source = fmt.Sprintf("%s:%s", filename, lineNum)
-			}
-		}
-
-		// Also try primary pattern for .js files (fallback)
+		// Try to extract source information
 		if source == "" {
-			if jsMatches := sourceFilePattern.FindStringSubmatch(line); len(jsMatches) >= minJSPatternMatches {
-				jsIndex := strings.LastIndex(line, ".js:")
-				if jsIndex != -1 {
-					start := strings.LastIndex(line[:jsIndex], "(")
-					if start != -1 {
-						filename := line[start+1 : jsIndex+3] // Include .js
-
-						// Only set if not React internal code
-						if !strings.Contains(filename, "react-dom") &&
-							!strings.Contains(filename, "ReactErrorUtils") {
-							source = fmt.Sprintf("%s:%s", strings.TrimSpace(filename), jsMatches[1])
-						}
-					}
-				}
-			}
+			source = extractSourceInfo(line)
 		}
 
-		// Look for React component names using enhanced pattern (includes lifecycle methods)
-		if matches := componentPattern.FindStringSubmatch(line); len(matches) >= minComponentPatternMatches {
-			component = matches[1]
+		// Look for React component names
+		if component == "" {
+			component = extractComponentInfo(line)
 		}
 
 		stackFrames = append(stackFrames, originalLine)
