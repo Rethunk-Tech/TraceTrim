@@ -23,7 +23,7 @@ const (
 
 	// Performance optimization constants
 	minStackTraceLength = 20
-	commentBufferExtra = 50
+	commentBufferExtra  = 50
 )
 
 // Pre-compiled regex patterns for better performance
