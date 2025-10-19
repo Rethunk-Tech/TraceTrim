@@ -297,3 +297,14 @@ func BenchmarkCleanStackTrace(b *testing.B) {
 		CleanStackTrace(input)
 	}
 }
+
+func BenchmarkExtractErrorInfo(b *testing.B) {
+	input := `Error: Objects are not valid as a React child
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)
+    at MyComponent.render (MyComponent.js:25:10)`
+
+	for i := 0; i < b.N; i++ {
+		ExtractErrorInfo(input)
+	}
+}
