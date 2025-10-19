@@ -41,9 +41,14 @@ func NewMonitor() (*Monitor, error) {
 	}, nil
 }
 
-// StartMonitoring begins monitoring the clipboard for changes
+// StartMonitoring begins monitoring the clipboard for changes with default interval
 func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.ClipboardContent, *Monitor)) error {
-	log.Printf("Starting clipboard monitoring on %s", m.platform.GetName())
+	return m.StartMonitoringWithInterval(ctx, clipboardPollInterval, callback)
+}
+
+// StartMonitoringWithInterval begins monitoring the clipboard for changes with custom interval
+func (m *Monitor) StartMonitoringWithInterval(ctx context.Context, interval time.Duration, callback func(models.ClipboardContent, *Monitor)) error {
+	log.Printf("Starting clipboard monitoring on %s with %v interval", m.platform.GetName(), interval)
 
 	// Get initial content
 	initialContent, err := m.platform.GetContent()
@@ -53,7 +58,7 @@ func (m *Monitor) StartMonitoring(ctx context.Context, callback func(models.Clip
 	m.lastContent = initialContent
 
 	// Start monitoring loop
-	ticker := time.NewTicker(clipboardPollInterval)
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
