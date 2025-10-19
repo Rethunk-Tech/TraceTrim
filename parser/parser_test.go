@@ -122,39 +122,39 @@ TypeError: Cannot read property 'name' of undefined
 
 func TestExtractErrorInfo(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		expectedMsg   string
-		expectedSrc   string
-		expectedComp  string
+		name         string
+		input        string
+		expectedMsg  string
+		expectedSrc  string
+		expectedComp string
 	}{
 		{
-			name:        "React component error",
-			input:       "Error: Objects are not valid as a React child\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)\n    at MyComponent.render (MyComponent.js:25:10)",
-			expectedMsg: "Error: Objects are not valid as a React child",
-			expectedSrc: "MyComponent.js:25",
+			name:         "React component error",
+			input:        "Error: Objects are not valid as a React child\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)\n    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)\n    at MyComponent.render (MyComponent.js:25:10)",
+			expectedMsg:  "Error: Objects are not valid as a React child",
+			expectedSrc:  "MyComponent.js:25",
 			expectedComp: "MyComponent",
 		},
 		{
-			name:        "React component lifecycle method",
-			input:       "Warning: Component did update\n    at MyComponent.componentDidUpdate (MyComponent.js:45:8)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
-			expectedMsg: "Warning: Component did update",
-			expectedSrc: "MyComponent.js:45",
+			name:         "React component lifecycle method",
+			input:        "Warning: Component did update\n    at MyComponent.componentDidUpdate (MyComponent.js:45:8)\n    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
+			expectedMsg:  "Warning: Component did update",
+			expectedSrc:  "MyComponent.js:45",
 			expectedComp: "MyComponent",
 		},
 		{
-			name:        "JavaScript error",
-			input:       "ReferenceError: x is not defined\n    at eval (eval at <anonymous> (script.js:1:1))",
-			expectedMsg: "ReferenceError: x is not defined",
-			expectedSrc: "script.js:1",
+			name:         "JavaScript error",
+			input:        "ReferenceError: x is not defined\n    at eval (eval at <anonymous> (script.js:1:1))",
+			expectedMsg:  "ReferenceError: x is not defined",
+			expectedSrc:  "script.js:1",
 			expectedComp: "",
 		},
 		{
-			name:          "Not a stack trace",
-			input:         "This is not a stack trace",
-			expectedMsg:   "",
-			expectedSrc:   "",
-			expectedComp:  "",
+			name:         "Not a stack trace",
+			input:        "This is not a stack trace",
+			expectedMsg:  "",
+			expectedSrc:  "",
+			expectedComp: "",
 		},
 	}
 
