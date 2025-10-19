@@ -103,15 +103,14 @@ func TestCleanStackTrace(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "Remove repetitive React frames",
+			name: "Collapse repetitive React frames",
 			input: `Error: Failed to render
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
     at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)`,
-			expected: `// Removed 2 repetitive stack frame(s)
-Error: Failed to render
-    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+			expected: `Error: Failed to render
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15) // [x3]
     at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)`,
 		},
 		{
@@ -137,9 +136,8 @@ Error: Failed to render
     at UserProfile.render (UserProfile.js:45:12)
     at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)
     at UserProfile.render (UserProfile.js:45:12)`,
-			expected: `// Removed 2 repetitive stack frame(s)
-TypeError: Cannot read property 'name' of undefined
-    at UserProfile.render (UserProfile.js:45:12)
+			expected: `TypeError: Cannot read property 'name' of undefined
+    at UserProfile.render (UserProfile.js:45:12) // [x3]
     at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)`,
 		},
 		{
@@ -149,10 +147,9 @@ react_stack_bottom_frame @ react-dom-client.development.js:23669
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
 react_stack_bottom_frame @ react-dom-client.development.js:23669
     at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`,
-			expected: `// Removed 2 repetitive stack frame(s)
-useAuth.useEffect @ S:\Projects\com.github\PeleOs-LLC\ROK-UI-v2\src\lib\hooks\useAuth.ts:47
-react_stack_bottom_frame @ react-dom-client.development.js:23669
-    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`,
+			expected: `useAuth.useEffect @ S:\Projects\com.github\PeleOs-LLC\ROK-UI-v2\src\lib\hooks\useAuth.ts:47
+react_stack_bottom_frame @ react-dom-client.development.js:23669 // [x2]
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15) // [x2]`,
 		},
 	}
 
@@ -360,9 +357,9 @@ func TestCleanStackTraceReturnsAccurateCount(t *testing.T) {
 		t.Error("CleanStackTrace.Content should be different from original when duplicates are removed")
 	}
 
-	// Check that the comment mentions the correct number
-	if !strings.Contains(result.Content, "Removed 2 repetitive stack frame(s)") {
-		t.Error("CleanStackTrace.Content should contain comment with correct removal count")
+	// Check that the collapsed lines contain the correct count
+	if !strings.Contains(result.Content, "[x3]") {
+		t.Error("CleanStackTrace.Content should contain collapsed lines with correct count")
 	}
 }
 
@@ -403,7 +400,7 @@ func TestCleanResultStatistics(t *testing.T) {
 		t.Errorf("LinesBefore = %d, want %d", result.LinesBefore, expectedLinesBefore)
 	}
 
-	// After cleaning, should have 3 lines (Error + comment + 1 unique frame)
+	// After cleaning, should have 3 lines (Error + 2 collapsed frames)
 	expectedLinesAfter := 3
 	if result.LinesAfter != expectedLinesAfter {
 		t.Errorf("LinesAfter = %d, want %d", result.LinesAfter, expectedLinesAfter)
@@ -441,7 +438,7 @@ react_stack_bottom_frame @ react-dom-client.development.js:23669
 	result := CleanStackTrace(input)
 	t.Logf("Input: %q", input)
 	t.Logf("Output: %q", result.Content)
-	t.Logf("Removed: %d", result.Removed)
+	t.Logf("Collapsed: %d", result.Removed)
 }
 
 // Benchmark tests

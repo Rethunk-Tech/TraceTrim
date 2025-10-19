@@ -133,9 +133,9 @@ type CleanResultPair struct {
 }
 
 // CleanStackTrace removes repetitive stack trace blocks while preserving all original formatting.
-// Only redundant stack frames are removed - all other content including indentation and spacing is preserved exactly.
+// Only redundant stack frames are collapsed in-place - all other content including indentation and spacing is preserved exactly.
 // Optimized to minimize string allocations and improve performance.
-// Returns both the cleaned content and the exact count of frames removed.
+// Returns both the cleaned content and the exact count of frames collapsed.
 func CleanStackTrace(content string) CleanResultPair {
 	// Validate content before processing
 	if !isValidContent(content) {
@@ -147,9 +147,26 @@ func CleanStackTrace(content string) CleanResultPair {
 	}
 
 	lines := strings.Split(content, "\n")
+	frameCounts := make(map[string]int)
+
+	// First pass: count occurrences of each frame
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Check if this is a stack frame line (contains file:line:column pattern or React console format)
+		if framePattern.MatchString(line) || reactFramePattern.MatchString(line) {
+			frameSignature := extractFrameSignature(line)
+			frameCounts[frameSignature]++
+		}
+	}
+
+	// Second pass: build cleaned lines, keeping only first occurrence of each frame
 	var cleanedLines []string
+	var framesCollapsed int
 	seenFrames := make(map[string]bool)
-	var framesRemoved int
 
 	for _, line := range lines {
 		originalLine := line
@@ -162,19 +179,37 @@ func CleanStackTrace(content string) CleanResultPair {
 
 		// Check if this is a stack frame line (contains file:line:column pattern or React console format)
 		if framePattern.MatchString(line) || reactFramePattern.MatchString(line) {
-			// Extract the frame signature (function + file + line)
 			frameSignature := extractFrameSignature(line)
 
 			if seenFrames[frameSignature] {
-				framesRemoved++
-				continue // Skip this duplicate frame
+				// This is a duplicate frame - skip it
+				framesCollapsed++
+				continue
 			} else {
+				// First occurrence of this frame - mark as seen and add normally
 				seenFrames[frameSignature] = true
 				cleanedLines = append(cleanedLines, originalLine)
 			}
 		} else {
 			// Non-frame line (error message, etc.) - always include
 			cleanedLines = append(cleanedLines, originalLine)
+		}
+	}
+
+	// Third pass: annotate the kept frames that have duplicates
+	for i, line := range cleanedLines {
+		lineTrimmed := strings.TrimSpace(line)
+		if lineTrimmed == "" {
+			continue
+		}
+
+		if framePattern.MatchString(lineTrimmed) || reactFramePattern.MatchString(lineTrimmed) {
+			frameSignature := extractFrameSignature(lineTrimmed)
+			if count := frameCounts[frameSignature]; count > 1 {
+				// This frame has duplicates - annotate it
+				collapsedLine := fmt.Sprintf("%s // [x%d]", line, count)
+				cleanedLines[i] = collapsedLine
+			}
 		}
 	}
 
@@ -194,19 +229,9 @@ func CleanStackTrace(content string) CleanResultPair {
 
 	result := builder.String()
 
-	// If we removed duplicates, add a note about it
-	if framesRemoved > 0 {
-		// Reset builder and rebuild with the note
-		builder.Reset()
-		builder.Grow(estimatedSize + commentBufferExtra) // Extra space for the comment
-		builder.WriteString(fmt.Sprintf("// Removed %d repetitive stack frame(s)\n", framesRemoved))
-		builder.WriteString(result)
-		result = builder.String()
-	}
-
 	return CleanResultPair{
 		Content: result,
-		Removed: framesRemoved,
+		Removed: framesCollapsed,
 	}
 }
 
