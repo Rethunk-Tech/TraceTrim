@@ -29,9 +29,8 @@ Error: Objects are not valid as a React child
 **After (clean and readable):**
 
 ```console
-// Removed 3 repetitive stack frame(s)
 Error: Objects are not valid as a React child
-    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15) // [x4]
     at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)
 ```
 
