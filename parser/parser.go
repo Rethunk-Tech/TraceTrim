@@ -42,15 +42,22 @@ var (
 		regexp.MustCompile(`\bTypeError:`),                             // "TypeError:"
 		regexp.MustCompile(`\bSyntaxError:`),                           // "SyntaxError:"
 		regexp.MustCompile(`\bEvalError:`),                             // "EvalError:"
+		// React console output patterns
+		regexp.MustCompile(`\b\w+\s+@\s+.+?:\d+\b`),                // "functionName @ file:line" - React console format (more permissive)
+		regexp.MustCompile(`\b\w+\.(js|ts|jsx|tsx|mjs|cjs):\d+\b`), // File paths with line numbers (without column)
 	}
 
 	// Frame parsing patterns - enhanced for better edge case handling
 	framePattern      = regexp.MustCompile(`(.+?)\s*\(([^:()]+):(\d+):(\d+)\)`)
-	sourceFilePattern = regexp.MustCompile(`\.(js|ts|jsx|tsx|mjs):(\d+):(\d+)`)
+	sourceFilePattern = regexp.MustCompile(`\.(js|ts|jsx|tsx|mjs|cjs):(\d+):(\d+)`)
+	// React console format patterns
+	reactFramePattern = regexp.MustCompile(`(.+?)\s*@\s*(.+?):(\d+)`)
 	// Enhanced component patterns for React lifecycle methods
 	componentPattern = regexp.MustCompile(`(\w+)\.(render|componentDidMount|componentDidUpdate|componentWillUnmount)\s*\(`)
 	// Additional pattern for source file extraction with better path handling
 	sourceFileAltPattern = regexp.MustCompile(`\(([^:()]+):(\d+):(\d+)\)`)
+	// React console format for source file extraction
+	sourceFileReactPattern = regexp.MustCompile(`@\s*(.+?):(\d+)`)
 )
 
 // IsStackTrace determines if the given content contains a JavaScript or React stack trace
@@ -153,8 +160,8 @@ func CleanStackTrace(content string) CleanResultPair {
 			continue
 		}
 
-		// Check if this is a stack frame line (contains file:line:column pattern)
-		if framePattern.MatchString(line) {
+		// Check if this is a stack frame line (contains file:line:column pattern or React console format)
+		if framePattern.MatchString(line) || reactFramePattern.MatchString(line) {
 			// Extract the frame signature (function + file + line)
 			frameSignature := extractFrameSignature(line)
 
@@ -206,15 +213,72 @@ func CleanStackTrace(content string) CleanResultPair {
 // extractFrameSignature creates a unique signature for a stack frame to detect duplicates
 // This function is now optimized to avoid redundant regex compilation and string processing
 func extractFrameSignature(line string) string {
+	// Try standard format first: "at functionName (file.js:123:45)"
 	matches := framePattern.FindStringSubmatch(line)
 	if len(matches) >= minFunctionPatternMatches {
-		// Return function + file + line as unique signature (trim "at " prefix if present)
+		// Use helper function for consistent React internal function handling
 		functionName := strings.TrimSpace(matches[1])
 		functionName = strings.TrimPrefix(functionName, "at ")
-		return fmt.Sprintf("%s|%s|%s", functionName, matches[2], matches[3])
+		return extractFrameSignatureForStandardFormat(functionName, matches[2], matches[3])
+	}
+
+	// Try React console format: "functionName @ file.js:123"
+	reactMatches := reactFramePattern.FindStringSubmatch(line)
+	if len(reactMatches) >= 4 {
+		functionName := strings.TrimSpace(reactMatches[1])
+		fileName := reactMatches[2]
+		lineNumber := reactMatches[3]
+
+		// For React internal functions, use function + file (ignoring line) to detect duplicates
+		// This helps collapse repeated React internal calls that happen on different lines
+		if isReactInternalFunction(functionName, fileName) {
+			return fmt.Sprintf("%s|%s", functionName, fileName)
+		}
+
+		return fmt.Sprintf("%s|%s|%s", functionName, fileName, lineNumber)
 	}
 
 	return line // Fallback to entire line if parsing fails
+}
+
+// isReactInternalFunction determines if a function is a React internal function
+// that should have its line numbers ignored for duplicate detection
+func isReactInternalFunction(functionName, fileName string) bool {
+	// React DOM development files contain many internal functions that are called repeatedly
+	if strings.Contains(fileName, "react-dom") {
+		// Common React internal functions that appear repeatedly in stack traces
+		reactInternalFunctions := []string{
+			"recursivelyTraverseAndDoubleInvokeEffectsInDEV",
+			"recursivelyTraversePassiveMountEffects",
+			"commitPassiveMountOnFiber",
+			"recursivelyTraverseReconnectPassiveEffects",
+			"recursivelyTraverseDisconnectPassiveEffects",
+			"recursivelyTraversePassiveUnmountEffects",
+			"commitPassiveUnmountOnFiber",
+			"ReactErrorUtils.invokeGuardedCallback",
+			"ReactCompositeComponent._renderValidatedComponent",
+			"react_stack_bottom_frame",
+		}
+
+		functionNameLower := strings.ToLower(functionName)
+		for _, internalFunc := range reactInternalFunctions {
+			if strings.Contains(functionNameLower, strings.ToLower(internalFunc)) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// extractFrameSignatureForStandardFormat handles standard format frame signatures
+func extractFrameSignatureForStandardFormat(functionName, fileName, lineNumber string) string {
+	// For React internal functions, use function + file (ignoring line) to detect duplicates
+	if isReactInternalFunction(functionName, fileName) {
+		return fmt.Sprintf("%s|%s", functionName, fileName)
+	}
+
+	return fmt.Sprintf("%s|%s|%s", functionName, fileName, lineNumber)
 }
 
 // ExtractErrorInfo extracts structured information from a stack trace for analysis.
@@ -245,8 +309,17 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 		}
 
 		// Extract file and line info for source - prioritize user code over React internals
-		// Try alternative pattern first (more reliable for all file types)
-		if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= minAltPatternMatches {
+		// Try React console format first: "functionName @ file.js:123"
+		if reactMatches := sourceFileReactPattern.FindStringSubmatch(line); len(reactMatches) >= 3 {
+			filename := strings.TrimSpace(reactMatches[1])
+
+			// Only set source if this is not React internal code
+			if !strings.Contains(filename, "react-dom") &&
+				!strings.Contains(filename, "ReactErrorUtils") {
+				lineNum := reactMatches[2]
+				source = fmt.Sprintf("%s:%s", filename, lineNum)
+			}
+		} else if altMatches := sourceFileAltPattern.FindStringSubmatch(line); len(altMatches) >= minAltPatternMatches {
 			filename := strings.TrimSpace(altMatches[1])
 
 			// Only set source if this is not React internal code

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -57,6 +58,13 @@ func TestIsStackTrace(t *testing.T) {
 			input: "Error: Component error\n" +
 				"    at MyComponent.render (Component.jsx:25:5)\n" +
 				"    at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)",
+			expected: true,
+		},
+		{
+			name: "React console output format",
+			input: "useAuth.useEffect @ S:\\Projects\\com.github\\PeleOs-LLC\\ROK-UI-v2\\src\\lib\\hooks\\useAuth.ts:47\n" +
+				"react_stack_bottom_frame @ react-dom-client.development.js:23669\n" +
+				"    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
 			expected: true,
 		},
 	}
@@ -133,6 +141,18 @@ Error: Failed to render
 TypeError: Cannot read property 'name' of undefined
     at UserProfile.render (UserProfile.js:45:12)
     at ReactCompositeComponent._renderValidatedComponent (react-dom.development.js:185:13)`,
+		},
+		{
+			name: "React console format with duplicates",
+			input: `useAuth.useEffect @ S:\Projects\com.github\PeleOs-LLC\ROK-UI-v2\src\lib\hooks\useAuth.ts:47
+react_stack_bottom_frame @ react-dom-client.development.js:23669
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+react_stack_bottom_frame @ react-dom-client.development.js:23669
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`,
+			expected: `// Removed 2 repetitive stack frame(s)
+useAuth.useEffect @ S:\Projects\com.github\PeleOs-LLC\ROK-UI-v2\src\lib\hooks\useAuth.ts:47
+react_stack_bottom_frame @ react-dom-client.development.js:23669
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`,
 		},
 	}
 
@@ -233,7 +253,7 @@ func TestExtractFrameSignature(t *testing.T) {
 		{
 			name:     "Standard frame format",
 			input:    "    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)",
-			expected: "ReactErrorUtils.invokeGuardedCallback|react-dom.development.js|138",
+			expected: "ReactErrorUtils.invokeGuardedCallback|react-dom.development.js",
 		},
 		{
 			name:     "Different format",
@@ -249,6 +269,26 @@ func TestExtractFrameSignature(t *testing.T) {
 			name:     "No parentheses",
 			input:    "    at someFunction file.js:10:5",
 			expected: "    at someFunction file.js:10:5", // Should return original if parsing fails
+		},
+		{
+			name:     "React console format",
+			input:    "react_stack_bottom_frame @ react-dom-client.development.js:23669",
+			expected: "react_stack_bottom_frame|react-dom-client.development.js",
+		},
+		{
+			name:     "React console format with Windows path",
+			input:    "useAuth.useEffect @ S:\\Projects\\com.github\\PeleOs-LLC\\ROK-UI-v2\\src\\lib\\hooks\\useAuth.ts:47",
+			expected: "useAuth.useEffect|S:\\Projects\\com.github\\PeleOs-LLC\\ROK-UI-v2\\src\\lib\\hooks\\useAuth.ts|47",
+		},
+		{
+			name:     "React internal function (should ignore line number)",
+			input:    "commitPassiveMountOnFiber @ react-dom-client.development.js:14380",
+			expected: "commitPassiveMountOnFiber|react-dom-client.development.js",
+		},
+		{
+			name:     "React internal function different line (should be same signature)",
+			input:    "commitPassiveMountOnFiber @ react-dom-client.development.js:14514",
+			expected: "commitPassiveMountOnFiber|react-dom-client.development.js",
 		},
 	}
 
@@ -368,6 +408,40 @@ func TestCleanResultStatistics(t *testing.T) {
 	if result.LinesAfter != expectedLinesAfter {
 		t.Errorf("LinesAfter = %d, want %d", result.LinesAfter, expectedLinesAfter)
 	}
+}
+
+// TestReactConsoleFormatDebug helps debug the React console format processing
+func TestReactConsoleFormatDebug(t *testing.T) {
+	input := `useAuth.useEffect @ S:\Projects\com.github\PeleOs-LLC\ROK-UI-v2\src\lib\hooks\useAuth.ts:47
+react_stack_bottom_frame @ react-dom-client.development.js:23669
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+react_stack_bottom_frame @ react-dom-client.development.js:23669
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`
+
+	lines := strings.Split(input, "\n")
+	frameSignatures := make(map[string][]string)
+
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		sig := extractFrameSignature(line)
+		frameSignatures[sig] = append(frameSignatures[sig], fmt.Sprintf("Line %d: %s", i, line))
+	}
+
+	// Print debug info
+	for sig, occurrences := range frameSignatures {
+		t.Logf("Signature: %s, Occurrences: %d", sig, len(occurrences))
+		for _, occurrence := range occurrences {
+			t.Logf("  %s", occurrence)
+		}
+	}
+
+	result := CleanStackTrace(input)
+	t.Logf("Input: %q", input)
+	t.Logf("Output: %q", result.Content)
+	t.Logf("Removed: %d", result.Removed)
 }
 
 // Benchmark tests
