@@ -3,6 +3,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rethunk-tech/no-reaction)](https://goreportcard.com/report/github.com/rethunk-tech/no-reaction)
 
+[![Release](https://img.shields.io/github/v/release/rethunk-tech/no-reaction.svg)](https://github.com/rethunk-tech/no-reaction/releases)
+[![Downloads](https://img.shields.io/github/downloads/rethunk-tech/no-reaction/total.svg)](https://github.com/rethunk-tech/no-reaction/releases)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
+[![Issues](https://img.shields.io/github/issues/rethunk-tech/no-reaction.svg)](https://github.com/rethunk-tech/no-reaction/issues)
+[![Stars](https://img.shields.io/github/stars/rethunk-tech/no-reaction.svg)](https://github.com/rethunk-tech/no-reaction)
+
 A simple, cross-platform CLI application that monitors your clipboard for JavaScript console or React stack traces and automatically cleans them by removing repetitive blocks.
 
 ## Problem Solved
