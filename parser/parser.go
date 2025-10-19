@@ -85,18 +85,25 @@ func IsStackTrace(content string) bool {
 	return false
 }
 
+// CleanResultPair contains both the cleaned content and detailed statistics
+type CleanResultPair struct {
+	Content string
+	Removed int
+}
+
 // CleanStackTrace removes repetitive stack trace blocks while preserving all original formatting.
 // Only redundant stack frames are removed - all other content including indentation and spacing is preserved exactly.
 // Optimized to minimize string allocations and improve performance.
-func CleanStackTrace(content string) string {
+// Returns both the cleaned content and the exact count of frames removed.
+func CleanStackTrace(content string) CleanResultPair {
 	if !IsStackTrace(content) {
-		return content
+		return CleanResultPair{Content: content, Removed: 0}
 	}
 
 	lines := strings.Split(content, "\n")
 	var cleanedLines []string
 	seenFrames := make(map[string]bool)
-	var consecutiveDuplicates int
+	var framesRemoved int
 
 	for _, line := range lines {
 		originalLine := line
@@ -113,7 +120,7 @@ func CleanStackTrace(content string) string {
 			frameSignature := extractFrameSignature(line)
 
 			if seenFrames[frameSignature] {
-				consecutiveDuplicates++
+				framesRemoved++
 				continue // Skip this duplicate frame
 			} else {
 				seenFrames[frameSignature] = true
@@ -142,16 +149,19 @@ func CleanStackTrace(content string) string {
 	result := builder.String()
 
 	// If we removed duplicates, add a note about it
-	if consecutiveDuplicates > 0 {
+	if framesRemoved > 0 {
 		// Reset builder and rebuild with the note
 		builder.Reset()
 		builder.Grow(estimatedSize + commentBufferExtra) // Extra space for the comment
-		builder.WriteString(fmt.Sprintf("// Removed %d repetitive stack frame(s)\n", consecutiveDuplicates))
+		builder.WriteString(fmt.Sprintf("// Removed %d repetitive stack frame(s)\n", framesRemoved))
 		builder.WriteString(result)
 		result = builder.String()
 	}
 
-	return result
+	return CleanResultPair{
+		Content: result,
+		Removed: framesRemoved,
+	}
 }
 
 // extractFrameSignature creates a unique signature for a stack frame to detect duplicates
@@ -246,22 +256,30 @@ func ExtractErrorInfo(content string) *models.ErrorInfo {
 // CleanResult provides detailed information about the cleaning process
 func CleanResult(content string) models.CleanResult {
 	original := content
-	cleaned := CleanStackTrace(content)
-	removed := 0
 
-	// Simple heuristic: if cleaned version is shorter, we removed something
-	if len(cleaned) < len(original) {
-		removed = (len(original) - len(cleaned)) / charsPerStackFrame // Rough estimate
-	}
+	// Use the enhanced CleanStackTrace that returns accurate frame removal count
+	cleanResult := CleanStackTrace(content)
+	cleaned := cleanResult.Content
+	removed := cleanResult.Removed
+
+	// Calculate bytes saved
+	bytesSaved := len(original) - len(cleaned)
+
+	// Count lines before and after
+	linesBefore := strings.Count(original, "\n") + 1 // +1 for the last line if no trailing newline
+	linesAfter := strings.Count(cleaned, "\n") + 1
 
 	var frames []models.StackFrame
 	errorInfo := ExtractErrorInfo(content)
 
 	return models.CleanResult{
-		Original:  original,
-		Cleaned:   cleaned,
-		Removed:   removed,
-		Frames:    frames,
-		ErrorInfo: errorInfo,
+		Original:    original,
+		Cleaned:     cleaned,
+		Removed:     removed,
+		BytesSaved:  bytesSaved,
+		LinesBefore: linesBefore,
+		LinesAfter:  linesAfter,
+		Frames:      frames,
+		ErrorInfo:   errorInfo,
 	}
 }
