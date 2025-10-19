@@ -46,19 +46,19 @@ const (
 
 // Config holds all configuration for the application
 type Config struct {
-	// Application settings (contains string pointer)
+	// Application settings
 	App AppConfig
 
-	// Output and logging settings (contains string pointer)
-	Output OutputConfig
-
-	// Script mode settings (contains string pointer)
-	Script ScriptConfig
-
-	// Parser settings (contains string slice pointer)
+	// Parser settings
 	Parser ParserConfig
 
-	// Clipboard monitoring settings (no pointers)
+	// Output and logging settings
+	Output OutputConfig
+
+	// Script mode settings
+	Script ScriptConfig
+
+	// Clipboard monitoring settings
 	Clipboard ClipboardConfig
 
 	// Script mode flag (simplified)
