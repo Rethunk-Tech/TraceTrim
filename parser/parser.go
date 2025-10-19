@@ -145,9 +145,7 @@ func extractFrameSignature(line string) string {
 	if len(matches) >= minFunctionPatternMatches {
 		// Return function + file + line as unique signature (trim "at " prefix if present)
 		functionName := strings.TrimSpace(matches[1])
-		if strings.HasPrefix(functionName, "at ") {
-			functionName = strings.TrimPrefix(functionName, "at ")
-		}
+		functionName = strings.TrimPrefix(functionName, "at ")
 		return fmt.Sprintf("%s|%s|%s", functionName, matches[2], matches[3])
 	}
 
