@@ -159,8 +159,6 @@ func TestCleanResult(t *testing.T) {
 	// Test with nil ErrorInfo
 	cleanResultNilError := CleanResult{
 		ErrorInfo: nil,
-		Original:  "test",
-		Cleaned:   "test",
 	}
 
 	if cleanResultNilError.ErrorInfo != nil {
@@ -200,12 +198,9 @@ func TestModelFieldAlignment(t *testing.T) {
 	original := "line1\nline2\nline3"
 	cleaned := "line1\nline3"
 	cleanResult := CleanResult{
-		Original:    original,
-		Cleaned:     cleaned,
-		Removed:     1,
-		BytesSaved:  len(original) - len(cleaned), // Calculate actual difference
-		LinesBefore: strings.Count(original, "\n") + 1,
-		LinesAfter:  strings.Count(cleaned, "\n") + 1,
+		Original:   original,
+		Cleaned:    cleaned,
+		BytesSaved: len(original) - len(cleaned), // Calculate actual difference
 	}
 
 	if cleanResult.BytesSaved != len(cleanResult.Original)-len(cleanResult.Cleaned) {
@@ -227,9 +222,7 @@ func TestTimestampOperations(t *testing.T) {
 	// Test timestamp operations on ClipboardContent
 	now := time.Now()
 	content := ClipboardContent{
-		Content:   "test",
 		Timestamp: now,
-		Format:    "text/plain",
 	}
 
 	if !content.Timestamp.Equal(now) {
@@ -238,9 +231,7 @@ func TestTimestampOperations(t *testing.T) {
 
 	// Test that timestamps are properly comparable
 	content2 := ClipboardContent{
-		Content:   "test2",
 		Timestamp: now.Add(time.Second),
-		Format:    "text/plain",
 	}
 
 	if content.Timestamp.Equal(content2.Timestamp) {

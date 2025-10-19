@@ -57,8 +57,8 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestValidateConfig(t *testing.T) {
 	tests := []struct {
-		name      string
 		config    *Config
+		name      string
 		shouldErr bool
 	}{
 		{
@@ -180,8 +180,8 @@ func TestConfigStructCreation(t *testing.T) {
 func TestConfigValidationEdgeCases(t *testing.T) {
 	// Test edge cases for validation
 	tests := []struct {
-		name   string
 		config *Config
+		name   string
 	}{
 		{
 			name: "Exactly minimum polling interval",
