@@ -63,7 +63,7 @@ func CleanStackTrace(content string) string {
 	seenFrames := make(map[string]bool)
 	var consecutiveDuplicates int
 
-	for i, line := range lines {
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -172,10 +172,6 @@ func CleanResult(content string) models.CleanResult {
 	original := content
 	cleaned := CleanStackTrace(content)
 	removed := 0
-
-	// Count how many repetitive frames were removed
-	originalLines := strings.Split(original, "\n")
-	cleanedLines := strings.Split(cleaned, "\n")
 
 	// Simple heuristic: if cleaned version is shorter, we removed something
 	if len(cleaned) < len(original) {
