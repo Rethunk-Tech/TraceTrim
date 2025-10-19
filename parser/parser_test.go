@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -135,7 +136,18 @@ TypeError: Cannot read property 'name' of undefined
 		},
 	}
 
-	runStringTests(t, tests, CleanStackTrace)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := CleanStackTrace(tt.input)
+
+			// For backward compatibility, check if the content matches expected
+			// The new function returns a CleanResultPair with Content field
+			content := result.Content
+			if content != tt.expected {
+				t.Errorf("CleanStackTrace(%q) =\n%q, want\n%q", tt.input, content, tt.expected)
+			}
+		})
+	}
 }
 
 func TestExtractErrorInfo(t *testing.T) {
@@ -266,11 +278,95 @@ func TestCleanResult(t *testing.T) {
 		t.Error("CleanResult.Removed should be > 0 when duplicates are removed")
 	}
 
+	// Check that bytes saved is calculated correctly
+	expectedBytesSaved := len(input) - len(result.Cleaned)
+	if result.BytesSaved != expectedBytesSaved {
+		t.Errorf("CleanResult.BytesSaved = %d, want %d", result.BytesSaved, expectedBytesSaved)
+	}
+
+	// Check that line counts are correct
+	expectedLinesBefore := strings.Count(input, "\n") + 1
+	expectedLinesAfter := strings.Count(result.Cleaned, "\n") + 1
+	if result.LinesBefore != expectedLinesBefore {
+		t.Errorf("CleanResult.LinesBefore = %d, want %d", result.LinesBefore, expectedLinesBefore)
+	}
+	if result.LinesAfter != expectedLinesAfter {
+		t.Errorf("CleanResult.LinesAfter = %d, want %d", result.LinesAfter, expectedLinesAfter)
+	}
+
 	// Check that error info was extracted
 	if result.ErrorInfo == nil {
 		t.Error("CleanResult.ErrorInfo should not be nil for valid stack trace")
 	} else if result.ErrorInfo.Message != "Error: Test error" {
 		t.Errorf("CleanResult.ErrorInfo.Message = %q, want %q", result.ErrorInfo.Message, "Error: Test error")
+	}
+}
+
+func TestCleanStackTraceReturnsAccurateCount(t *testing.T) {
+	input := `Error: Test error
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`
+
+	result := CleanStackTrace(input)
+
+	// Check that we detected exactly 2 removals (3 duplicates, but we keep the first one)
+	if result.Removed != 2 {
+		t.Errorf("CleanStackTrace.Removed = %d, want 2", result.Removed)
+	}
+
+	// Check that cleaned content is different from original
+	if result.Content == input {
+		t.Error("CleanStackTrace.Content should be different from original when duplicates are removed")
+	}
+
+	// Check that the comment mentions the correct number
+	if !strings.Contains(result.Content, "Removed 2 repetitive stack frame(s)") {
+		t.Error("CleanStackTrace.Content should contain comment with correct removal count")
+	}
+}
+
+func TestCleanStackTraceNoDuplicates(t *testing.T) {
+	input := `Error: Test error
+    at function1 (file1.js:10:5)
+    at function2 (file2.js:20:10)
+    at function3 (file3.js:30:15)`
+
+	result := CleanStackTrace(input)
+
+	// Check that no frames were removed
+	if result.Removed != 0 {
+		t.Errorf("CleanStackTrace.Removed = %d, want 0", result.Removed)
+	}
+
+	// Check that content is unchanged
+	if result.Content != input {
+		t.Error("CleanStackTrace.Content should be unchanged when no duplicates exist")
+	}
+}
+
+func TestCleanResultStatistics(t *testing.T) {
+	input := `Error: Test error
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)
+    at ReactErrorUtils.invokeGuardedCallback (react-dom.development.js:138:15)`
+
+	result := CleanResult(input)
+
+	// Test bytes saved calculation
+	if result.BytesSaved != len(input)-len(result.Cleaned) {
+		t.Errorf("BytesSaved calculation is incorrect")
+	}
+
+	// Test lines count
+	expectedLinesBefore := 3 // Error line + 2 stack frame lines
+	if result.LinesBefore != expectedLinesBefore {
+		t.Errorf("LinesBefore = %d, want %d", result.LinesBefore, expectedLinesBefore)
+	}
+
+	// After cleaning, should have 3 lines (Error + comment + 1 unique frame)
+	expectedLinesAfter := 3
+	if result.LinesAfter != expectedLinesAfter {
+		t.Errorf("LinesAfter = %d, want %d", result.LinesAfter, expectedLinesAfter)
 	}
 }
 
