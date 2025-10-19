@@ -35,9 +35,7 @@ func (w *windowsPlatform) GetContent() (string, error) {
 		return "", fmt.Errorf("failed to open clipboard")
 	}
 	defer func() {
-		if _, _, err := closeClipboard.Call(); err != nil {
-			// Log error but don't fail the operation
-		}
+		closeClipboard.Call() // Ignore errors in defer
 	}()
 
 	// Get data in Unicode text format
@@ -52,9 +50,7 @@ func (w *windowsPlatform) GetContent() (string, error) {
 		return "", fmt.Errorf("failed to lock global memory")
 	}
 	defer func() {
-		if _, _, err := globalUnlock.Call(hMem); err != nil {
-			// Log error but don't fail the operation
-		}
+		globalUnlock.Call(hMem) // Ignore errors in defer
 	}()
 
 	// Convert UTF-16 bytes to Go string
@@ -88,9 +84,7 @@ func (w *windowsPlatform) SetContent(content string) error {
 		return fmt.Errorf("failed to open clipboard")
 	}
 	defer func() {
-		if _, _, err := closeClipboard.Call(); err != nil {
-			// Log error but don't fail the operation
-		}
+		closeClipboard.Call() // Ignore errors in defer
 	}()
 
 	// Empty clipboard
@@ -107,24 +101,25 @@ func (w *windowsPlatform) SetContent(content string) error {
 	// Lock memory and copy data
 	lockRet, _, _ := globalLock.Call(hMem)
 	if lockRet == 0 {
-		globalFree.Call(hMem)
+		globalFree.Call(hMem) // Ignore errors in cleanup
 		return fmt.Errorf("failed to lock global memory")
 	}
 
 	// Copy UTF-16 data
 	dest := (*[1 << 20]uint16)(unsafe.Pointer(lockRet))
-	copy((*[1 << 20]uint16)(dest)[:len(utf16):len(utf16)], utf16)
+	destSlice := dest[:len(utf16):len(utf16)]
+	copy(destSlice, utf16)
 
 	// Unlock memory
 	if _, _, err := globalUnlock.Call(hMem); err != nil {
-		globalFree.Call(hMem)
+		globalFree.Call(hMem) // Ignore errors in cleanup
 		return fmt.Errorf("failed to unlock global memory")
 	}
 
 	// Set clipboard data
 	setClipboardDataRet, _, _ := setClipboardData.Call(cfUnicodeText, hMem)
 	if setClipboardDataRet == 0 {
-		globalFree.Call(hMem)
+		globalFree.Call(hMem) // Ignore errors in cleanup
 		return fmt.Errorf("failed to set clipboard data")
 	}
 
