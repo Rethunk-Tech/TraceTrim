@@ -20,8 +20,14 @@ type Config struct {
 	// Parser settings
 	Parser ParserConfig
 
+	// Script mode settings
+	Script ScriptConfig
+
 	// Application settings
 	App AppConfig
+
+	// Script mode flag (simplified)
+	ScriptMode bool
 }
 
 // ClipboardConfig contains clipboard monitoring configuration
@@ -60,6 +66,21 @@ type ParserConfig struct {
 	CustomPatterns []string
 }
 
+// ScriptConfig contains script mode configuration
+type ScriptConfig struct {
+	// Enabled determines if script mode is active
+	Enabled bool
+
+	// OutputFormat controls the output format in script mode
+	OutputFormat string
+
+	// ShowStatistics controls whether to show cleaning statistics in script mode
+	ShowStatistics bool
+
+	// ExitCodeOnError controls whether to exit with error code when no stack trace is found
+	ExitCodeOnError bool
+}
+
 // AppConfig contains general application configuration
 type AppConfig struct {
 	// ConfigFile path to configuration file
@@ -84,9 +105,16 @@ func DefaultConfig() *Config {
 			MinStackTraceLength:       20,
 			CustomPatterns:            []string{},
 		},
+		Script: ScriptConfig{
+			Enabled:         false,
+			OutputFormat:    "cleaned", // "cleaned", "json", "stats"
+			ShowStatistics:  true,
+			ExitCodeOnError: false,
+		},
 		App: AppConfig{
 			ConfigFile: "config.yaml",
 		},
+		ScriptMode: false,
 	}
 }
 
@@ -152,6 +180,9 @@ func LoadConfig() (*Config, error) {
 	if v.IsSet("parser-custom-patterns") {
 		config.Parser.CustomPatterns = v.GetStringSlice("parser-custom-patterns")
 	}
+	if v.IsSet("script-mode") {
+		config.ScriptMode = v.GetBool("script-mode")
+	}
 
 	return config, nil
 }
@@ -168,6 +199,7 @@ func BindFlags() error {
 	pflag.Int("parser-min-stack-lines", 2, "Minimum stack lines for detection")
 	pflag.Int("parser-min-stack-trace-length", 20, "Minimum stack trace length")
 	pflag.StringSlice("parser-custom-patterns", []string{}, "Custom regex patterns for stack trace detection")
+	pflag.Bool("script-mode", false, "Enable script mode (read from STDIN, write to STDOUT, then exit)")
 
 	// Bind flags to the global viper instance FIRST
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {

@@ -16,5 +16,8 @@ parser-min-stack-lines: 2
 parser-min-stack-trace-length: 20
 parser-custom-patterns: []
 
+# Script mode flag (simplified)
+script-mode: false
+
 # Application settings
 config-file: config.yaml

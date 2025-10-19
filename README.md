@@ -40,6 +40,7 @@ Error: Objects are not valid as a React child
 - 🚀 **Automatic Detection**: Continuously monitors clipboard for stack traces
 - 🎯 **Smart Cleaning**: Removes only repetitive blocks, preserves all formatting
 - ⚡ **Real-time**: Updates clipboard instantly when stack traces are detected
+- 🔧 **Script Mode**: Can be used in shell scripts and automation pipelines
 - 🌍 **Cross-platform**: Works on Windows, macOS, and Linux
 - 🧪 **Well-tested**: Comprehensive test coverage for reliable operation
 - 📦 **Zero-config**: Just run it - no configuration needed
@@ -124,6 +125,30 @@ Press Ctrl+C to exit
 ### Stopping the Application
 
 Press `Ctrl+C` to gracefully stop the clipboard monitoring.
+
+### Script Mode
+
+TraceTrim can also be used in scripts by reading from STDIN and writing cleaned output to STDOUT:
+
+```bash
+# Clean a stack trace from a file
+cat stack_trace.txt | ./tracetrim --script-mode > cleaned_stack_trace.txt
+
+# Use in a pipeline
+echo "Error: Something went wrong
+    at myFunction (script.js:10:5)
+    at myFunction (script.js:10:5)" | ./tracetrim --script-mode
+
+# Process multiple stack traces
+find . -name "*.log" -exec grep -l "Error:" {} \; | xargs cat | ./tracetrim --script-mode
+```
+
+**Script Mode Features:**
+- Reads stack traces from STDIN
+- Outputs cleaned content to STDOUT
+- No headers, footers, or status messages (clean output for scripts)
+- Exits immediately after processing
+- Compatible with shell pipelines and automation scripts
 
 ## How It Works
 

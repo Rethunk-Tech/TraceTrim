@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -45,7 +46,15 @@ func main() {
 	// Set up logging based on configuration
 	// Note: File logging is not implemented in this version
 
-	// Print startup information based on verbosity
+	// Check if script mode is enabled
+	if cfg.ScriptMode {
+		// Run in script mode - read from STDIN, process, write to STDOUT, then exit
+		// No header output in script mode to avoid breaking scripts
+		runScriptMode(cfg)
+		return
+	}
+
+	// Print startup information based on verbosity (normal monitoring mode)
 	if !cfg.Output.Quiet {
 		fmt.Printf("TraceTrim v%s\n", version)
 		if cfg.Output.Verbose {
@@ -99,6 +108,92 @@ func main() {
 	<-sigChan
 	fmt.Println("\nShutting down...")
 	monitor.Stop()
+}
+
+// runScriptMode processes stack traces from STDIN and outputs results to STDOUT
+func runScriptMode(cfg *config.Config) {
+	// Read all input from STDIN
+	scanner := bufio.NewScanner(os.Stdin)
+	var input strings.Builder
+
+	for scanner.Scan() {
+		input.WriteString(scanner.Text())
+		input.WriteString("\n")
+	}
+
+	if err := scanner.Err(); err != nil {
+		if !cfg.Output.Quiet {
+			fmt.Fprintf(os.Stderr, "Error reading from STDIN: %v\n", err)
+		}
+		if cfg.Script.ExitCodeOnError {
+			os.Exit(1)
+		}
+		return
+	}
+
+	content := strings.TrimSpace(input.String())
+
+	// Check if input is empty
+	if content == "" {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "No input content provided\n")
+		}
+		if cfg.Script.ExitCodeOnError {
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Process the content as a potential stack trace
+	processScriptInput(content, cfg)
+}
+
+// processScriptInput handles the core logic for script mode processing
+func processScriptInput(content string, cfg *config.Config) {
+	// Check content size limit
+	if len(content) > cfg.Clipboard.MaxContentSize {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "Content too large (%d bytes), skipping\n", len(content))
+		}
+		if cfg.Script.ExitCodeOnError {
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Check if this looks like a stack trace
+	if !parser.IsStackTrace(content) {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "No stack trace detected in input\n")
+		}
+		if cfg.Script.ExitCodeOnError {
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Process stack trace
+	cleanResult := parser.CleanResult(content)
+
+	// Check if content actually changed
+	if cleanResult.Cleaned == content {
+		if cfg.Output.Verbose {
+			fmt.Fprintf(os.Stderr, "No changes needed - content is already clean\n")
+		}
+		// Even if no changes, we still output the original content in script mode
+		outputScriptResult(&cleanResult, cfg, false)
+		return
+	}
+
+	// Output the cleaned result
+	outputScriptResult(&cleanResult, cfg, true)
+}
+
+// outputScriptResult formats and outputs the result based on script mode configuration
+func outputScriptResult(cleanResult *models.CleanResult, cfg *config.Config, wasCleaned bool) {
+	// In script mode, only output the cleaned content to STDOUT
+	// No statistics to STDERR to avoid breaking scripts
+	fmt.Print(cleanResult.Cleaned)
 }
 
 // plural returns "s" if count != 1, otherwise returns empty string
