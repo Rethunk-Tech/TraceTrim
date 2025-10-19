@@ -49,7 +49,13 @@ var (
 )
 
 // IsStackTrace determines if the given content contains a JavaScript or React stack trace
+// Optimized to avoid allocations for short content and improve performance
 func IsStackTrace(content string) bool {
+	// Early return for obviously non-stack-trace content
+	if len(content) < 20 {
+		return false
+	}
+
 	lines := strings.Split(content, "\n")
 	stackLineCount := 0
 
@@ -77,6 +83,7 @@ func IsStackTrace(content string) bool {
 
 // CleanStackTrace removes repetitive stack trace blocks while preserving all original formatting.
 // Only redundant stack frames are removed - all other content including indentation and spacing is preserved exactly.
+// Optimized to minimize string allocations and improve performance.
 func CleanStackTrace(content string) string {
 	if !IsStackTrace(content) {
 		return content
@@ -115,7 +122,10 @@ func CleanStackTrace(content string) string {
 	}
 
 	// Use strings.Builder for efficient string concatenation
+	// Pre-calculate approximate size to minimize reallocations
+	estimatedSize := len(content) // Start with original size
 	var builder strings.Builder
+	builder.Grow(estimatedSize)
 
 	// Join cleaned lines
 	for i, line := range cleanedLines {
@@ -131,6 +141,7 @@ func CleanStackTrace(content string) string {
 	if consecutiveDuplicates > 0 {
 		// Reset builder and rebuild with the note
 		builder.Reset()
+		builder.Grow(estimatedSize + 50) // Extra space for the comment
 		builder.WriteString(fmt.Sprintf("// Removed %d repetitive stack frame(s)\n", consecutiveDuplicates))
 		builder.WriteString(result)
 		result = builder.String()
