@@ -14,6 +14,9 @@ import (
 	"com.github/rethunk-tech/no-reaction/parser"
 )
 
+// version is set during build time via ldflags
+var version = "dev"
+
 func main() {
 	// Bind command line flags to viper
 	if err := config.BindFlags(); err != nil {
@@ -38,7 +41,7 @@ func main() {
 
 	// Print startup information based on verbosity
 	if !cfg.Output.Quiet {
-		fmt.Println("Clipboard Stack Trace Cleaner")
+		fmt.Printf("Clipboard Stack Trace Cleaner v%s\n", version)
 		if cfg.Output.Verbose {
 			fmt.Printf("Configuration loaded from: %s\n", cfg.App.ConfigFile)
 			fmt.Printf("Polling interval: %v\n", cfg.Clipboard.PollingInterval)
