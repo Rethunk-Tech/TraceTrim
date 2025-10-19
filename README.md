@@ -5,7 +5,7 @@
 
 [![Release](https://img.shields.io/github/v/release/rethunk-tech/tracetrim.svg)](https://github.com/rethunk-tech/tracetrim/releases)
 [![Downloads](https://img.shields.io/github/downloads/rethunk-tech/tracetrim/total.svg)](https://github.com/rethunk-tech/tracetrim/releases)
-[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)]()
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/rethunk-tech/tracetrim)
 [![Issues](https://img.shields.io/github/issues/rethunk-tech/tracetrim.svg)](https://github.com/rethunk-tech/tracetrim/issues)
 [![Stars](https://img.shields.io/github/stars/rethunk-tech/tracetrim.svg)](https://github.com/rethunk-tech/tracetrim)
 
@@ -40,7 +40,7 @@ Error: Objects are not valid as a React child
 - 🎯 **Smart Cleaning**: Removes only repetitive blocks, preserves all formatting
 - ⚡ **Real-time**: Updates clipboard instantly when stack traces are detected
 - 🔧 **Script Mode**: Can be used in shell scripts and automation pipelines
-- 🌍 **Cross-platform**: Works on Windows, macOS, and Linux
+- 🌍 **Cross-platform**: Works on Windows, macOS, and Linux using golang.design/x/clipboard
 - 🧪 **Well-tested**: Comprehensive test coverage for reliable operation
 - 📦 **Zero-config**: Just run it - no configuration needed
 
@@ -73,10 +73,10 @@ go build -o tracetrim ./cmd/
 
 ### Option 3: Cross-platform Builds
 
-The application supports all major platforms with platform-specific optimizations:
+The application uses a cross-platform clipboard library, so you can build for multiple platforms:
 
 ```bash
-# Build for multiple platforms (build tags ensure correct implementation)
+# Build for multiple platforms
 GOOS=windows GOARCH=amd64 go build -o tracetrim-windows.exe ./cmd/
 GOOS=darwin GOARCH=amd64 go build -o tracetrim-macos ./cmd/
 GOOS=linux GOARCH=amd64 go build -o tracetrim-linux ./cmd/
@@ -85,12 +85,6 @@ GOOS=linux GOARCH=amd64 go build -o tracetrim-linux ./cmd/
 GOOS=darwin GOARCH=arm64 go build -o tracetrim-macos-arm64 ./cmd/
 GOOS=linux GOARCH=arm64 go build -o tracetrim-linux-arm64 ./cmd/
 ```
-
-**Note**: Each platform uses its optimal clipboard access method:
-
-- **Windows**: Native Windows API (`user32.dll`, `kernel32.dll`)
-- **macOS**: Native Cocoa NSPasteboard (Objective-C bridge via cgo)
-- **Linux**: xclip/xsel utilities (automatically detected and fallback)
 
 ## Usage
 
@@ -164,30 +158,50 @@ cat stack_trace.txt | ./tracetrim --script-mode > cleaned_stack_trace.txt
 - Exits immediately after processing
 - Compatible with shell pipelines and automation scripts
 
-**Configuration:**
+## Configuration
 
-- `--auto-detect-script-mode=true`: Enable automatic detection (default)
-- `--auto-detect-script-mode=false`: Disable automatic detection
-- `--script-mode`: Manually enable script mode (overrides auto-detection)
+TraceTrim supports both configuration files and command-line flags. By default, it looks for a `config.yaml` file in the current directory.
+
+### Command Line Flags
+
+- `--verbose`: Enable detailed logging output
+- `--quiet`: Suppress non-essential output
+- `--script-mode`: Enable script mode (overrides auto-detection)
+- `--auto-detect-script-mode`: Auto-detect script mode (default: true)
+- `--clipboard-polling-interval`: Set clipboard polling interval (default: 500ms)
+- `--clipboard-max-content-size`: Maximum clipboard content size in bytes (default: 1MB)
+- `--parser-min-stack-lines`: Minimum stack lines for detection (default: 2)
+- `--parser-min-stack-trace-length`: Minimum stack trace length (default: 20)
+- `--show-timestamp`: Show timestamps in output (default: true)
+- `--config`: Specify configuration file path (default: config.yaml)
+
+### Configuration File
+
+Example `config.yaml`:
+
+```yaml
+# Clipboard monitoring settings
+clipboard-polling-interval: 500ms
+clipboard-max-content-size: 1048576
+
+# Output settings
+verbose: false
+quiet: false
+show-timestamp: true
+
+# Parser settings
+parser-min-stack-lines: 2
+parser-min-stack-trace-length: 20
+
+# Script mode settings
+auto-detect-script-mode: true
+```
 
 ## How It Works
 
-### Platform Architecture
-
-The application uses a clean platform abstraction architecture:
-
-- **Interface-based Design**: `Platform` interface defines clipboard operations (`GetContent()`, `SetContent()`, `GetName()`)
-- **Build Tag System**: Platform-specific implementations are selected at compile time using Go build tags
-- **Runtime Detection**: Each platform implementation handles its own initialization and error handling
-- **Cross-platform Compatibility**: Single binary works across all platforms with optimal native integration
-
 ### Clipboard Integration
 
-Each platform uses its most efficient clipboard access method:
-
-- **Windows**: Direct Windows API calls for maximum performance
-- **macOS**: Native Cocoa NSPasteboard integration via Objective-C bridge
-- **Linux**: External clipboard utilities (xclip/xsel) with automatic fallback
+The application uses the [golang.design/x/clipboard](https://github.com/golang.design/x/clipboard) library for cross-platform clipboard access, providing seamless support for Windows, macOS, and Linux without platform-specific code.
 
 ### Detection
 
@@ -251,16 +265,13 @@ This application handles clipboard content and should be used with appropriate s
   - Size limits prevent memory exhaustion attacks
   - Content sanitization removes potentially dangerous patterns
 - **Memory Safety**: Proper memory management prevents leaks and corruption
-- **Platform Isolation**: Each platform implementation is isolated and validated
+- **Platform Compatibility**: Cross-platform library handles platform differences automatically
 - **No Network Access**: Application operates entirely locally with no external connections
 - **Minimal Permissions**: Only requires clipboard access permissions
 
 ### Security Best Practices
 
-- **Permission Management**:
-  - Windows: Standard application permissions (no administrator required)
-  - macOS: Requires Accessibility permissions (see troubleshooting section)
-  - Linux: Requires clipboard utility access (xclip/xsel)
+- **Permission Management**: Standard application permissions for clipboard access
 - **Content Safety**:
   - Application only processes text content, never binary data
   - Stack trace patterns are strictly validated before processing
@@ -300,7 +311,7 @@ The application follows security best practices:
 - Regular dependency updates through `go mod tidy`
 - Static analysis with `go vet` to catch potential issues
 - Comprehensive test coverage including edge cases
-- Platform-specific security validations
+- Cross-platform security validations
 
 If you discover any security vulnerabilities, please report them responsibly through the project's issue tracker.
 
@@ -315,86 +326,6 @@ The application supports cleaning stack traces from all modern JavaScript and Ty
 - **Modern modules (.mjs)** - ES modules and modern JavaScript
 
 The parser automatically detects and handles stack traces from any of these file types, regardless of build tools, bundlers, or development environments being used.
-
-## Platform-Specific Implementation Details
-
-### Windows
-
-**Implementation**: Native Windows API integration using `user32.dll` and `kernel32.dll`
-
-- **Clipboard Access**: Direct Windows clipboard API calls for optimal performance
-- **Requirements**: Windows Vista or later (Windows 7+ recommended)
-- **Dependencies**: None - uses only standard Windows libraries
-- **Permissions**: Standard application permissions, no special setup required
-- **Build Tags**: `//go:build windows` for platform-specific compilation
-
-**Technical Details**:
-
-- Uses `OpenClipboard`, `GetClipboardData`, `SetClipboardData` Windows APIs
-- Handles UTF-16 text conversion for Windows clipboard format
-- Proper memory management with `GlobalAlloc`/`GlobalFree` and `GlobalLock`/`GlobalUnlock`
-
-### macOS
-
-**Implementation**: Cocoa NSPasteboard integration using Objective-C bridge via cgo
-
-- **Clipboard Access**: Native macOS NSPasteboard API for seamless integration
-- **Requirements**: macOS 10.6 or later (macOS 10.15+ recommended)
-- **Dependencies**: None - uses only system Cocoa framework
-- **Permissions**: May require Accessibility permissions on first run
-- **Build Tags**: `//go:build darwin` for platform-specific compilation
-
-**Technical Details**:
-
-- Cgo interface to Objective-C Cocoa NSPasteboard APIs
-- Automatic memory management with `@autoreleasepool`
-- Handles NSString conversion between Go and Objective-C
-- Uses `NSPasteboardTypeString` for text content
-
-**Setup**:
-
-```bash
-# Grant permissions if prompted
-# System Preferences > Security & Privacy > Accessibility
-```
-
-### Linux
-
-**Implementation**: External clipboard utilities with fallback support
-
-- **Primary Tool**: xclip (supports both X11 and Wayland via XWayland)
-- **Fallback Tool**: xsel (alternative clipboard utility)
-- **Requirements**: X11 environment or Wayland with XWayland
-- **Dependencies**: Install either xclip or xsel (automatically detected)
-
-**Technical Details**:
-
-- Uses `exec.Command` to interface with external clipboard tools
-- Automatic tool detection and fallback mechanism
-- Supports both reading (`xclip -o`/`xsel -ob`) and writing (`xclip -i`/`xsel -ib`)
-- Handles text content via stdin/stdout pipes
-
-**Installation**:
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install xclip
-
-# Alternative for Ubuntu/Debian
-sudo apt-get install xsel
-
-# CentOS/RHEL/Fedora
-sudo yum install xsel
-
-# Arch Linux
-sudo pacman -S xclip
-```
-
-**Environment Support**:
-
-- ✅ X11 desktop environments (GNOME, KDE, Xfce, etc.)
-- ✅ Wayland with XWayland compatibility layer
-- ✅ Remote X11 sessions via SSH with X forwarding
 
 ## Troubleshooting Guide
 
@@ -431,34 +362,19 @@ echo "test content" | pbcopy  # macOS
 - **Check Go installation**: Ensure Go 1.21+ is installed (`go version`)
 - **Verify binary**: Ensure the binary is not corrupted (`ls -la tracetrim`)
 - **Check permissions**: Ensure the binary is executable (`chmod +x tracetrim`)
-- **Platform compatibility**: Ensure you're running on a supported platform (Windows 7+, macOS 10.6+, Linux with X11)
+- **Platform compatibility**: Ensure you're running on a supported platform (Windows, macOS, Linux)
 
 #### 2. Clipboard Access Denied
 
 **Symptoms**: "Failed to initialize clipboard monitor" errors
 **Possible Causes**: Missing permissions, incompatible environment, system restrictions
 
-**Platform-Specific Solutions**:
+**Solutions**:
 
-**Windows**:
-
-- Run as administrator if clipboard access fails
-- Check Windows version (Vista+ required)
-- Verify no other application has exclusive clipboard access
-- Try running from Command Prompt instead of PowerShell
-
-**macOS**:
-
-- Grant Accessibility permissions (see detailed steps in Platform-Specific section)
-- Check System Preferences > Security & Privacy > Privacy > Accessibility
-- Ensure terminal application (Terminal, iTerm, etc.) has permissions
-- Try restarting the application after granting permissions
-
-**Linux**:
-
-- Install clipboard utilities: `sudo apt-get install xclip` (Ubuntu/Debian) or `sudo yum install xsel` (CentOS/RHEL)
-- Verify X11 is running: `echo $DISPLAY` should show a display number
-- Check if in SSH session without X forwarding: use `ssh -X` for X11 forwarding
+- Ensure the application has permission to access the clipboard
+- Try restarting the application
+- Check if another application has exclusive clipboard access
+- On Linux, ensure a clipboard manager is running
 
 #### 3. Stack Traces Not Being Cleaned
 
@@ -469,8 +385,8 @@ echo "test content" | pbcopy  # macOS
 
 - **Verify content format**: Ensure the clipboard contains actual JavaScript/React stack traces
 - **Check content size**: Very large stack traces (>1MB) are skipped by default
-- **Adjust detection sensitivity**: Use `--parser-min-stack-lines` flag to lower detection threshold
 - **Enable verbose mode**: Use `--verbose` flag to see detailed processing information
+- **Adjust polling interval**: Use `--clipboard-polling-interval` flag (default: 500ms)
 - **Check for false negatives**: Some minified or non-standard stack trace formats may not be detected
 
 #### 4. High CPU Usage
@@ -480,7 +396,7 @@ echo "test content" | pbcopy  # macOS
 
 **Solutions**:
 
-- **Increase polling interval**: Use `--clipboard-polling-interval 1000ms` (default: 500ms)
+- **Adjust polling interval**: Use `--clipboard-polling-interval` flag (default: 500ms)
 - **Check for clipboard spam**: Rapid clipboard changes can cause high CPU usage
 - **Monitor resource usage**: Use system tools to identify the cause
 
@@ -491,21 +407,9 @@ echo "test content" | pbcopy  # macOS
 
 **Solutions**:
 
-- **Configure content limits**: Use `--clipboard-max-content-size 1048576` (1MB limit)
+- **Check content size limits**: Large content (>1MB) is skipped by default
 - **Check system resources**: Ensure adequate free memory (at least 50MB recommended)
 - **Monitor for memory leaks**: Use system tools to check application memory usage
-
-#### 6. Cross-Platform Issues
-
-**Symptoms**: Application works on one platform but not others
-**Possible Causes**: Platform-specific dependencies, compilation issues, environment differences
-
-**Solutions**:
-
-- **Verify platform support**: Check you're using a supported OS/architecture combination
-- **Check compilation**: Ensure binary was compiled for the correct platform
-- **Environment variables**: Check for platform-specific environment requirements
-- **Dependencies**: Verify all platform-specific dependencies are installed
 
 #### 7. Configuration Issues
 
@@ -543,56 +447,14 @@ For advanced users experiencing persistent issues:
 ./tracetrim --verbose
 
 # Test clipboard access directly
-./tracetrim --clipboard-polling-interval 2000ms
+./tracetrim --clipboard-polling-interval 2000ms --verbose
 
 # Check system clipboard status
-# Windows: Use ClipBook Viewer or PowerShell Get-Clipboard
-# macOS: Use pbpaste
-# Linux: Use xclip -o or xsel -ob
+# Use platform-specific clipboard tools (pbpaste on macOS, xclip/xsel on Linux, Get-Clipboard on Windows)
 
 # Monitor application with system tools
-# Windows: Task Manager, Resource Monitor
-# macOS: Activity Monitor, Console.app
-# Linux: top, htop, journalctl
+# Use platform-specific monitoring tools (Activity Monitor on macOS, Task Manager on Windows, top/htop on Linux)
 ```
-
-## Platform-Specific Implementation Details
-
-### Clipboard Access Issues
-
-**Windows:**
-
-- **Permission Issues**: Ensure the application has permission to access clipboard (standard Windows permissions)
-- **Administrator Rights**: Try running as administrator if clipboard access fails
-- **Windows Version**: Requires Windows Vista or later; Windows 7+ recommended
-- **Error Messages**: Check for Windows API errors in console output
-
-**macOS:**
-
-- **Accessibility Permissions**: Grant permissions in System Preferences > Security & Privacy > Accessibility
-  - Go to System Preferences > Security & Privacy > Privacy tab
-  - Select "Accessibility" from the left sidebar
-  - Click the lock icon to make changes (you may need to enter your password)
-  - Find and check the box next to your terminal application (Terminal, iTerm, etc.) or the tracetrim executable
-  - If the application doesn't appear in the list, try adding it manually by clicking the "+" button
-- **First Run Prompt**: The application may prompt for permissions on first launch
-- **System Integrity Protection**: Ensure SIP doesn't interfere with clipboard access
-  - SIP should not normally interfere with clipboard access, but if you encounter issues, check that the application is properly signed
-- **Error Messages**: Look for cgo/Objective-C bridge errors in console output
-- **Troubleshooting Steps**:
-  1. Ensure the application has Accessibility permissions as described above
-  2. Try running the application from a terminal that has proper permissions
-  3. If using a bundled application, ensure it's properly signed with codesign
-  4. Check Console.app for any related error messages
-
-**Linux:**
-
-- **Missing Dependencies**: Install xclip or xsel (see installation section above)
-- **X11 Environment**: Ensure X11 is running (`echo $DISPLAY` should show display)
-- **Wayland Compatibility**: Use XWayland for Wayland environments
-- **SSH Sessions**: Enable X11 forwarding (`ssh -X`) for remote sessions
-- **Permission Issues**: May need `xhost +` for local clipboard access
-- **Tool Detection**: Application automatically detects available tools and falls back
 
 ### False Positives
 
@@ -620,35 +482,18 @@ go test ./...
 ├── cmd/                    # CLI application entry point
 │   └── main.go
 ├── clipboard/              # Clipboard monitoring module
-│   ├── monitor.go          # Cross-platform clipboard interface
-│   ├── monitor_windows.go  # Windows-specific implementation
-│   ├── monitor_darwin.go   # macOS-specific implementation (Cocoa NSPasteboard)
-│   └── monitor_linux.go    # Linux-specific implementation (xclip/xsel)
+│   ├── monitor.go          # Cross-platform clipboard interface using golang.design/x/clipboard
+│   └── monitor_test.go     # Clipboard monitoring tests
 ├── parser/                 # Stack trace parsing and cleaning
 │   ├── parser.go           # Core parsing logic
 │   └── parser_test.go      # Comprehensive tests
-└── internal/models/        # Shared data structures
-    └── types.go
-```
-
-### Adding New Platforms
-
-To add support for a new platform:
-
-1. Create `monitor_[platform].go` in the `clipboard/` directory
-2. Add appropriate build tags (`//go:build [platform]` and `// +build [platform]`)
-3. Implement the `Platform` interface with `GetContent()`, `SetContent()`, and `GetName()` methods
-4. Add a `getPlatform()` function that returns your platform implementation
-5. Update this documentation to include platform-specific details
-
-**Platform Interface:**
-
-```go
-type Platform interface {
-    GetContent() (string, error)
-    SetContent(content string) error
-    GetName() string
-}
+├── internal/
+│   ├── config/             # Configuration management
+│   │   ├── config.go        # Configuration loading and validation
+│   │   └── config_test.go  # Configuration tests
+│   └── models/             # Shared data structures
+│       └── types.go
+└── go.mod                  # Go module definition
 ```
 
 ## Contributing

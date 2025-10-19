@@ -10,20 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial release of TraceTrim
-- Cross-platform clipboard monitoring (Windows, macOS, Linux)
+- Cross-platform clipboard monitoring using golang.design/x/clipboard (Windows, macOS, Linux)
 - Automatic detection and cleaning of JavaScript/React stack traces
 - Remove repetitive stack frames while preserving essential error information
+- Script mode for use in shell pipelines
+- Configuration file support with command-line flag overrides
 - Comprehensive test coverage
-- CI/CD pipeline with automated releases
 
 ### Fixed
 
-- Platform-specific clipboard access implementations
-- Memory management for Windows API integration
-- Cross-compilation support for multiple architectures
+- Clipboard access using cross-platform library
+- Memory management and error handling
+- Configuration validation and loading
 
 ### Changed
 
-- Improved binary naming convention (`tracetrim-{platform}-{arch}`)
-- Enhanced release automation with checksum verification
+- Improved binary naming convention
+- Enhanced release automation
 - Better error handling and logging
