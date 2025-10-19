@@ -16,12 +16,11 @@ import (
 // Test configuration validation logic
 func TestConfigValidationLogic(t *testing.T) {
 	tests := []struct {
-		name      string
 		config    *config.Config
+		name      string
 		wantError bool
 	}{
 		{
-			name: "valid config",
 			config: &config.Config{
 				Clipboard: config.ClipboardConfig{
 					PollingInterval: 500 * time.Millisecond,
@@ -35,7 +34,6 @@ func TestConfigValidationLogic(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name: "invalid polling interval - too short",
 			config: &config.Config{
 				Clipboard: config.ClipboardConfig{
 					PollingInterval: 10 * time.Millisecond,
@@ -49,7 +47,6 @@ func TestConfigValidationLogic(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name: "invalid content size - too small",
 			config: &config.Config{
 				Clipboard: config.ClipboardConfig{
 					PollingInterval: 500 * time.Millisecond,
@@ -63,7 +60,6 @@ func TestConfigValidationLogic(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name: "invalid content size - too large",
 			config: &config.Config{
 				Clipboard: config.ClipboardConfig{
 					PollingInterval: 500 * time.Millisecond,
@@ -77,7 +73,6 @@ func TestConfigValidationLogic(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name: "invalid min stack lines - too small",
 			config: &config.Config{
 				Clipboard: config.ClipboardConfig{
 					PollingInterval: 500 * time.Millisecond,
@@ -231,21 +226,25 @@ func TestClipboardContentHandlingLogic(t *testing.T) {
 			// without a mock clipboard monitor, but we can test the logic components
 
 			// Test content size validation
-			if len(tt.content.Content) > cfg.Clipboard.MaxContentSize {
+			contentSize := len(tt.content.Content)
+			isStackTrace := parser.IsStackTrace(tt.content.Content)
+
+			switch {
+			case contentSize > cfg.Clipboard.MaxContentSize:
 				// Should be handled by handleContentTooLarge logic
 				if cfg.Output.Verbose {
-					// Would log content too large message
+					t.Logf("Content too large: %d bytes", contentSize)
 				}
-			} else if parser.IsStackTrace(tt.content.Content) {
+			case isStackTrace:
 				// Would process stack trace
 				cleanResult := parser.CleanResult(tt.content.Content)
-				if cleanResult.Cleaned != tt.content.Content {
-					// Would show cleaning results
+				if cleanResult.Cleaned != tt.content.Content && cfg.Output.Verbose {
+					t.Logf("Cleaned content: %s", cleanResult.Cleaned)
 				}
-			} else {
+			default:
 				// Would skip non-stack-trace content
 				if cfg.Output.Verbose {
-					// Would log skipping message
+					t.Log("Skipping non-stack-trace content")
 				}
 			}
 		})
@@ -268,7 +267,7 @@ func TestTimestampAndStatisticsLogic(t *testing.T) {
 	}
 
 	// Test timestamp formatting
-	timestamp := getTimestamp(content, cfg)
+	timestamp := GetTimestamp(content, cfg)
 	expectedTimestamp := "[14:30:45] "
 	if timestamp != expectedTimestamp {
 		t.Errorf("Expected timestamp %q, got %q", expectedTimestamp, timestamp)
@@ -281,7 +280,7 @@ func TestTimestampAndStatisticsLogic(t *testing.T) {
 		Original:   "original content",
 	}
 
-	statsParts := buildStatsParts(cleanResult)
+	statsParts := BuildStatsParts(cleanResult)
 	if len(statsParts) == 0 {
 		t.Error("Expected statistics parts, got empty slice")
 	}
@@ -389,6 +388,8 @@ func TestConcurrentAccessPatterns(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		<-done
 	}
+
+	t.Log("Concurrent access test completed successfully")
 }
 
 // Test that invalid configs are caught
