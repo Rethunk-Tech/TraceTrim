@@ -62,6 +62,22 @@ func TestIsStackTrace(t *testing.T) {
 	}
 }
 
+// runStringTests runs table-driven tests for functions that take a string and return a string
+func runStringTests(t *testing.T, tests []struct {
+	name     string
+	input    string
+	expected string
+}, testFunc func(string) string) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := testFunc(tt.input)
+			if result != tt.expected {
+				t.Errorf("%s(%q) =\n%q, want\n%q", t.Name(), tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestCleanStackTrace(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -110,14 +126,7 @@ TypeError: Cannot read property 'name' of undefined
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := CleanStackTrace(tt.input)
-			if result != tt.expected {
-				t.Errorf("CleanStackTrace(%q) =\n%q, want\n%q", tt.input, result, tt.expected)
-			}
-		})
-	}
+	runStringTests(t, tests, CleanStackTrace)
 }
 
 func TestExtractErrorInfo(t *testing.T) {
@@ -217,14 +226,7 @@ func TestExtractFrameSignature(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := extractFrameSignature(tt.input)
-			if result != tt.expected {
-				t.Errorf("extractFrameSignature(%q) = %q, want %q", tt.input, result, tt.expected)
-			}
-		})
-	}
+	runStringTests(t, tests, extractFrameSignature)
 }
 
 func TestCleanResult(t *testing.T) {
