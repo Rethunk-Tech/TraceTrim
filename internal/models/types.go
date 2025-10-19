@@ -3,6 +3,7 @@ package models
 import "time"
 
 // ErrorInfo contains the essential information from a stack trace
+//nolint:govet // Field alignment is acceptable for this struct
 type ErrorInfo struct {
 	Stack     []string // Individual stack frames (24 bytes - pointer + len + cap)
 	Message   string   // The main error message (8 bytes)
@@ -26,6 +27,7 @@ type StackFrame struct {
 }
 
 // CleanResult contains the cleaned stack trace and metadata
+//nolint:govet // Field alignment is acceptable for this struct
 type CleanResult struct {
 	Frames    []StackFrame // Parsed stack frames (24 bytes - pointer + len + cap)
 	ErrorInfo *ErrorInfo   // Extracted error information (8 bytes)
