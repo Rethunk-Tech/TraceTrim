@@ -41,12 +41,6 @@ func (s *standardPlatform) GetName() string {
 
 // GetContent retrieves text content from clipboard using standard library
 func (s *standardPlatform) GetContent() (string, error) {
-	// Initialize clipboard if needed
-	err := clipboard.Init()
-	if err != nil {
-		return "", fmt.Errorf("failed to initialize clipboard: %w", err)
-	}
-
 	data := clipboard.Read(clipboard.FmtText)
 	if data == nil {
 		return "", fmt.Errorf("no text data available in clipboard")
@@ -57,18 +51,18 @@ func (s *standardPlatform) GetContent() (string, error) {
 
 // SetContent sets text content to clipboard using standard library
 func (s *standardPlatform) SetContent(content string) error {
-	// Initialize clipboard if needed
-	err := clipboard.Init()
-	if err != nil {
-		return fmt.Errorf("failed to initialize clipboard: %w", err)
-	}
-
 	clipboard.Write(clipboard.FmtText, []byte(content))
 	return nil
 }
 
 // NewMonitor creates a new clipboard monitor using the standard cross-platform library
 func NewMonitor() (*Monitor, error) {
+	// Initialize clipboard once at startup
+	err := clipboard.Init()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize clipboard: %w", err)
+	}
+
 	return &Monitor{
 		platform: &standardPlatform{},
 		stopChan: make(chan struct{}),
