@@ -81,5 +81,8 @@ jobs:
     - name: Set up virtual display
       run: make setup-display-linux
 
+    - name: Install development tools
+      run: make install-tools
+
     - name: golangci-lint
       run: make lint
