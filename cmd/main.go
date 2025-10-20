@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -20,6 +21,63 @@ import (
 
 // version is set during build time via ldflags
 var version = "dev"
+
+// commitHash is set during build time via ldflags
+var commitHash = "unknown"
+
+// getFullVersion returns the formatted version string with commit hash if available
+func getFullVersion() string {
+	if version == "dev" {
+		// For dev builds, try to get the latest tag and current commit hash
+		tag, err := getLatestTag()
+		if err != nil {
+			return "dev"
+		}
+
+		hash, err := getCurrentCommitHash()
+		if err != nil {
+			return fmt.Sprintf("%s-dev", tag)
+		}
+
+		// Extract first 7 characters of commit hash for brevity
+		shortHash := hash
+		if len(hash) > 7 {
+			shortHash = hash[:7]
+		}
+		return fmt.Sprintf("%s-%s-dev", tag, shortHash)
+	}
+
+	if commitHash != "unknown" && commitHash != "" {
+		// Extract first 7 characters of commit hash for brevity
+		shortHash := commitHash
+		if len(commitHash) > 7 {
+			shortHash = commitHash[:7]
+		}
+		return fmt.Sprintf("%s-%s", version, shortHash)
+	}
+
+	return version
+}
+
+// getLatestTag returns the latest git tag
+func getLatestTag() (string, error) {
+	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+// getCurrentCommitHash returns the current commit hash
+func getCurrentCommitHash() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
 
 // Constants for stack trace types
 const (
@@ -86,11 +144,16 @@ func main() {
 
 	// Print startup information based on verbosity (normal monitoring mode)
 	if !cfg.Output.Quiet {
-		fmt.Printf("TraceTrim v%s\n", version)
-		if cfg.Output.Verbose {
-			fmt.Printf("Configuration loaded from: %s\n", cfg.App.ConfigFile)
-			fmt.Printf("Polling interval: %v\n", cfg.Clipboard.PollingInterval)
-		}
+		fullVersion := getFullVersion()
+		fmt.Printf("TraceTrim %s\n", fullVersion)
+	}
+
+	if cfg.Output.Verbose && !cfg.Output.Quiet {
+		fmt.Printf("Configuration loaded from: %s\n", cfg.App.ConfigFile)
+		fmt.Printf("Polling interval: %v\n", cfg.Clipboard.PollingInterval)
+	}
+
+	if !cfg.Output.Quiet {
 		fmt.Println("Monitoring clipboard for JavaScript/React stack traces...")
 		fmt.Println("Press Ctrl+C to exit")
 	}

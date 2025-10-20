@@ -67,16 +67,20 @@ jobs:
           echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi
 
+    - name: Get commit hash
+      id: commit
+      run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
     - name: Build binaries
       run: |
         mkdir -p dist/
         # Build for multiple platforms and architectures with consistent naming
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o dist/no-reaction-windows-amd64.exe ./cmd
-        GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o dist/no-reaction-windows-arm64.exe ./cmd
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o dist/no-reaction-darwin-amd64 ./cmd
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o dist/no-reaction-darwin-arm64 ./cmd
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o dist/no-reaction-linux-amd64 ./cmd
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }}" -o dist/no-reaction-linux-arm64 ./cmd
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-windows-amd64.exe ./cmd
+        GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-windows-arm64.exe ./cmd
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-darwin-amd64 ./cmd
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-darwin-arm64 ./cmd
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-linux-amd64 ./cmd
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-linux-arm64 ./cmd
 
     - name: Generate checksums
       run: |
