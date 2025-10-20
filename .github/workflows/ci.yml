@@ -52,43 +52,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-1.24-
 
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Verify dependencies
-      run: go mod verify
-
-    - name: Run go vet
-      shell: bash
-      run: |
-        packages=$(go list ./...)
-        go vet $packages
-
-    - name: Run tests
-      shell: bash
-      run: |
-        packages=$(go list ./...)
-        go test -race -coverprofile=coverage.out $packages
-
-
-    - name: Run tests with benchmarks
-      shell: bash
-      run: |
-        packages=$(go list ./...)
-        go test -bench=. -benchmem $packages
+    - name: Run complete CI suite
+      run: make ci
 
     - name: Build application
-      shell: bash
-      run: |
-        packages=$(go list ./...)
-        go build -v $packages
+      run: make build
 
     - name: Test cross-compilation
       if: matrix.os == 'ubuntu-latest'
-      run: |
-        GOOS=windows GOARCH=amd64 go build -o no-reaction-windows-amd64.exe ./cmd
-        GOOS=darwin GOARCH=amd64 go build -o no-reaction-darwin-amd64 ./cmd
-        GOOS=linux GOARCH=arm64 go build -o no-reaction-linux-arm64 ./cmd
+      run: make cross-compile
 
   lint:
     name: Lint
@@ -104,17 +76,10 @@ jobs:
         go-version: '1.24'
 
     - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libxext-dev xvfb
+      run: make install-deps-linux
 
     - name: Set up virtual display
-      run: |
-        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        echo "DISPLAY=:99.0" >> $GITHUB_ENV
+      run: make setup-display-linux
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: latest
-        args: --timeout=5m
+      run: make lint

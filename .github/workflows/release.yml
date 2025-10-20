@@ -37,7 +37,7 @@ jobs:
           ubuntu-latest-go-1.23-
 
     - name: Run tests
-      run: go test ./...
+      run: make test
 
     - name: Validate version tag
       run: |
@@ -73,31 +73,10 @@ jobs:
 
     - name: Build binaries
       run: |
-        mkdir -p dist/
-        # Build for multiple platforms and architectures with consistent naming
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-windows-amd64.exe ./cmd
-        GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-windows-arm64.exe ./cmd
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-darwin-amd64 ./cmd
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-darwin-arm64 ./cmd
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-linux-amd64 ./cmd
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.tag.outputs.tag }} -X main.commitHash=${{ steps.commit.outputs.hash }}" -o dist/no-reaction-linux-arm64 ./cmd
+        make cross-compile VERSION=${{ steps.tag.outputs.tag }} COMMIT_HASH=${{ steps.commit.outputs.hash }}
 
-    - name: Generate checksums
-      run: |
-        cd dist/
-        sha256sum * > checksums.txt
-
-    - name: Verify checksums
-      run: |
-        cd dist/
-        echo "Verifying checksums..."
-        sha256sum -c checksums.txt --strict
-        if [ $? -eq 0 ]; then
-          echo "✓ All checksums verified successfully"
-        else
-          echo "✗ Checksum verification failed!"
-          exit 1
-        fi
+    - name: Generate and verify checksums
+      run: make checksums verify-checksums
 
     - name: Create Release
       id: create_release
@@ -131,39 +110,39 @@ jobs:
     - name: Generate Homebrew formula
       run: |
         # Generate a proper Homebrew formula for multiple platforms
-        cat > no-reaction.rb << EOF
-        class NoReaction < Formula
+        cat > tracetrim.rb << EOF
+        class TraceTrim < Formula
           desc "Clipboard Stack Trace Cleaner for JavaScript/React"
-          homepage "https://github.com/rethunk-tech/no-reaction"
+          homepage "https://github.com/rethunk-tech/tracetrim"
           version "${{ steps.tag.outputs.tag }}"
 
           if OS.mac? && Hardware::CPU.arm?
-            url "https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/no-reaction-darwin-arm64"
-            sha256 "$(curl -s https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep darwin-arm64 | cut -d' ' -f1)"
+            url "https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/tracetrim-darwin-arm64"
+            sha256 "$(curl -s https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep darwin-arm64 | cut -d' ' -f1)"
           elsif OS.mac? && Hardware::CPU.intel?
-            url "https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/no-reaction-darwin-amd64"
-            sha256 "$(curl -s https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep darwin-amd64 | cut -d' ' -f1)"
+            url "https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/tracetrim-darwin-amd64"
+            sha256 "$(curl -s https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep darwin-amd64 | cut -d' ' -f1)"
           elsif OS.linux? && Hardware::CPU.arm?
-            url "https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/no-reaction-linux-arm64"
-            sha256 "$(curl -s https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep linux-arm64 | cut -d' ' -f1)"
+            url "https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/tracetrim-linux-arm64"
+            sha256 "$(curl -s https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep linux-arm64 | cut -d' ' -f1)"
           elsif OS.linux? && Hardware::CPU.intel?
-            url "https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/no-reaction-linux-amd64"
-            sha256 "$(curl -s https://github.com/rethunk-tech/no-reaction/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep linux-amd64 | cut -d' ' -f1)"
+            url "https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/tracetrim-linux-amd64"
+            sha256 "$(curl -s https://github.com/rethunk-tech/tracetrim/releases/download/${{ steps.tag.outputs.tag }}/checksums.txt | grep linux-amd64 | cut -d' ' -f1)"
           end
 
           def install
-            bin.install File.basename(url) => "no-reaction"
+            bin.install File.basename(url) => "tracetrim"
           end
 
           test do
-            system "#{bin}/no-reaction", "--version"
+            system "#{bin}/tracetrim", "--version"
           end
         end
         EOF
 
     - name: Upload Homebrew formula to release
       run: |
-        gh release upload ${{ steps.tag.outputs.tag }} no-reaction.rb --clobber
+        gh release upload ${{ steps.tag.outputs.tag }} tracetrim.rb --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -171,14 +150,14 @@ jobs:
       run: |
         echo "## Installation Instructions"
         echo ""
-        echo "Users can now install no-reaction using Homebrew with:"
+        echo "Users can now install tracetrim using Homebrew with:"
         echo ""
         echo '```bash'
         echo "# Add this formula to your tap or create a local tap"
         echo "# Then install with:"
-        echo "brew install no-reaction.rb"
+        echo "brew install tracetrim.rb"
         echo '```'
         echo ""
         echo "Or manually download from the release assets above."
         echo ""
-        echo "Formula file available as release asset: no-reaction.rb"
+        echo "Formula file available as release asset: tracetrim.rb"

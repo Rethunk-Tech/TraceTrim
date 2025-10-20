@@ -24,14 +24,10 @@ jobs:
         go-version: '1.24'
 
     - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libxext-dev xvfb
+      run: make install-deps-linux
 
     - name: Set up virtual display
-      run: |
-        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        echo "DISPLAY=:99.0" >> $GITHUB_ENV
+      run: make setup-display-linux
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -43,11 +39,8 @@ jobs:
         restore-keys: |
           ubuntu-latest-go-1.24-
 
-    - name: Run govulncheck
-      run: |
-        go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-
-
+    - name: Run security checks
+      run: make security
 
   dependency-review:
     name: Dependency Review
