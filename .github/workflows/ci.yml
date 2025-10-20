@@ -59,29 +59,17 @@ jobs:
       run: go mod verify
 
     - name: Run go vet
-      shell: pwsh
-      run: |
-        $packages = go list ./...
-        go vet $packages
+      run: go vet ./...
 
     - name: Run tests
-      shell: pwsh
-      run: |
-        $packages = go list ./...
-        go test -race -coverprofile=coverage.txt $packages
+      run: go test -race -coverprofile=coverage.out ./...
 
 
     - name: Run tests with benchmarks
-      shell: pwsh
-      run: |
-        $packages = go list ./...
-        go test -bench=. -benchmem $packages
+      run: go test -bench=. -benchmem ./...
 
     - name: Build application
-      shell: pwsh
-      run: |
-        $packages = go list ./...
-        go build -v $packages
+      run: go build -v ./...
 
     - name: Test cross-compilation
       if: matrix.os == 'ubuntu-latest'
