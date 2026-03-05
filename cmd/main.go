@@ -106,21 +106,28 @@ func isNonInteractiveEnvironment() bool {
 	return false
 }
 
-func main() {
-	// Bind command line flags to viper
+// loadAndValidateConfig binds flags, loads, and validates the application configuration.
+func loadAndValidateConfig() (*config.Config, error) {
 	if err := config.BindFlags(); err != nil {
-		log.Fatalf("Failed to bind flags: %v", err)
+		return nil, fmt.Errorf("failed to bind flags: %w", err)
 	}
 
-	// Load configuration
-	cfg, configErr := config.LoadConfig()
-	if configErr != nil {
-		log.Fatalf("Failed to load configuration: %v", configErr)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Validate configuration
 	if err := config.ValidateConfig(cfg); err != nil {
-		log.Fatalf("Invalid configuration: %v", err)
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	return cfg, nil
+}
+
+func main() {
+	cfg, err := loadAndValidateConfig()
+	if err != nil {
+		log.Fatalf("Configuration error: %v", err)
 	}
 
 	// Auto-detect script mode if in non-interactive environment and auto-detection is enabled
