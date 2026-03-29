@@ -54,7 +54,7 @@ Check the [Releases](https://github.com/rethunk-tech/tracetrim/releases) page fo
 
 **Prerequisites:**
 
-- Go 1.21 or later
+- Go 1.26 or later
 
 ```bash
 # Clone the repository
@@ -359,7 +359,7 @@ echo "test content" | pbcopy  # macOS
 
 **Solutions**:
 
-- **Check Go installation**: Ensure Go 1.21+ is installed (`go version`)
+- **Check Go installation**: Ensure Go 1.26+ is installed (`go version`)
 - **Verify binary**: Ensure the binary is not corrupted (`ls -la tracetrim`)
 - **Check permissions**: Ensure the binary is executable (`chmod +x tracetrim`)
 - **Platform compatibility**: Ensure you're running on a supported platform (Windows, macOS, Linux)
