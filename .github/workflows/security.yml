@@ -16,12 +16,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: '1.25'
 
     - name: Install system dependencies
       run: make install-deps-linux
@@ -30,14 +30,14 @@ jobs:
       run: make setup-display-linux
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/go/pkg/mod
           ~/.cache/go-build
-        key: ubuntu-latest-go-1.24-${{ hashFiles('**/go.sum') }}
+        key: ubuntu-latest-go-1.25-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ubuntu-latest-go-1.24-
+          ubuntu-latest-go-1.25-
 
     - name: Run security checks
       run: make security
@@ -49,7 +49,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Dependency Review
       uses: actions/dependency-review-action@v4
