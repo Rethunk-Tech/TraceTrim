@@ -243,6 +243,11 @@ install-deps-linux: ## Install system dependencies for Linux
 	sudo apt-get update
 	sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libxext-dev xvfb
 
+.PHONY: install-deps-fedora
+install-deps-fedora: ## Install system dependencies for Fedora/RHEL-family Linux
+	@echo "Installing Fedora/RHEL system dependencies..."
+	sudo dnf install -y libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel mesa-libGL-devel libXext-devel xorg-x11-server-Xvfb
+
 .PHONY: install-deps-macos
 install-deps-macos: ## Install system dependencies for macOS
 	@echo "Installing macOS system dependencies..."
