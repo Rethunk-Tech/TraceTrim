@@ -4,9 +4,11 @@ TraceTrim is a cross-platform Go CLI tool that monitors the clipboard for JavaSc
 
 ## Quick Navigation
 
-- **For users:** See [README.md](./README.md) — installation, usage, configuration, troubleshooting
+- **For users:** See [HUMANS.md](./HUMANS.md) — installation, usage, configuration, troubleshooting
 - **For developers:** This file — building, testing, extending
 - **For security:** See [SECURITY.md](./SECURITY.md)
+- **For contributors:** See [CONTRIBUTING.md](./CONTRIBUTING.md) — development workflow, PR guidelines
+- **For releases:** See [CHANGELOG.md](./CHANGELOG.md) — version history
 
 ## Project Structure
 
