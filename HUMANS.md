@@ -1,6 +1,10 @@
 # HUMANS.md — User guide for TraceTrim
 
-This file covers **installation, usage, and configuration**. For **developer context**, see [AGENTS.md](./AGENTS.md).
+This file covers **installation, usage, and configuration**. For other documentation:
+- **For developers:** See [AGENTS.md](./AGENTS.md) — architecture, testing, extending
+- **For security:** See [SECURITY.md](./SECURITY.md) — vulnerability reporting, threat model
+- **For contributors:** See [CONTRIBUTING.md](./CONTRIBUTING.md) — development workflow
+- **Overview:** See [README.md](./README.md)
 
 ## Installation
 
