@@ -18,7 +18,7 @@ linters-settings:
   lll:
     line-length: 140
   goimports:
-    local-prefixes: github.com/rethunk-tech/no-reaction
+    local-prefixes: com.github/rethunk-tech/tracetrim
   gocritic:
     enabled-tags:
       - diagnostic
