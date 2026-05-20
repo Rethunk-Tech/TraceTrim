@@ -12,11 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mattn/go-isatty"
+
 	"com.github/rethunk-tech/tracetrim/clipboard"
 	"com.github/rethunk-tech/tracetrim/internal/config"
 	"com.github/rethunk-tech/tracetrim/internal/models"
 	"com.github/rethunk-tech/tracetrim/parser"
-	"github.com/mattn/go-isatty"
 )
 
 // version is set during build time via ldflags
@@ -61,7 +62,7 @@ func getFullVersion() string {
 
 // getLatestTag returns the latest git tag
 func getLatestTag() (string, error) {
-	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
+	cmd := exec.CommandContext(context.Background(), "git", "describe", "--tags", "--abbrev=0")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -71,7 +72,7 @@ func getLatestTag() (string, error) {
 
 // getCurrentCommitHash returns the current commit hash
 func getCurrentCommitHash() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd := exec.CommandContext(context.Background(), "git", "rev-parse", "HEAD")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err

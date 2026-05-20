@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"com.github/rethunk-tech/tracetrim/internal/models"
 	"golang.design/x/clipboard"
+
+	"com.github/rethunk-tech/tracetrim/internal/models"
 )
 
 const (
