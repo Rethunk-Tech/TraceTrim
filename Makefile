@@ -8,7 +8,7 @@ MAIN_PACKAGE := ./cmd
 DIST_DIR := dist
 
 # Go configuration
-GO_VERSION := 1.24
+GO_VERSION := 1.26
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 
