@@ -2,12 +2,12 @@ name: Security
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   schedule:
     # Run security checks weekly on Sundays
-    - cron: '0 0 * * 0'
+  - cron: '0 0 * * 0'
 
 jobs:
   security-scan:
@@ -16,10 +16,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.2
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.4.0
       with:
         go-version: '1.26'
 
@@ -30,7 +30,7 @@ jobs:
       run: make setup-display-linux
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@v5.0.5
       with:
         path: |
           ~/go/pkg/mod
@@ -49,7 +49,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.2
 
     - name: Dependency Review
       uses: actions/dependency-review-action@v5.0.0
