@@ -123,7 +123,7 @@ func (m *Monitor) StartMonitoringWithInterval(
 				clipboardContent := models.ClipboardContent{
 					Content:   content,
 					Timestamp: time.Now(),
-					Format:    "text/plain",
+					Format:    models.FormatTextPlain,
 				}
 				callback(clipboardContent, m)
 			}

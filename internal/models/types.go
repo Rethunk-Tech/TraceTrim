@@ -10,6 +10,9 @@ type ErrorInfo struct { //nolint:govet // Field alignment is acceptable for this
 	Component string   // React component name if applicable (8 bytes)
 }
 
+// FormatTextPlain is the MIME type for plain-text clipboard content.
+const FormatTextPlain = "text/plain"
+
 // ClipboardContent represents clipboard data with metadata
 type ClipboardContent struct {
 	Content   string    // The actual clipboard content
